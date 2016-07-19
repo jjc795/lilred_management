@@ -1,0 +1,15 @@
+Header header
+float32 temp1
+float32 temp2
+float32 temp3
+float32 temp4
+float32 current_24
+float32 voltage_24
+float32 power_24
+float32 current_12
+float32 voltage_12
+float32 power_12
+float32 current_5
+float32 voltage_5
+float32 power_5
+bool estop_status
