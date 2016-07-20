@@ -81,6 +81,7 @@ class ina226 {
   public:
     ina226(uint8_t addr);
     void begin(uint16_t cal, uint16_t avg, uint16_t vbusct, uint16_t vshct, uint16_t mode);
+    void alertConfig(uint16_t func, uint16_t limit, uint16_t polarity, uint16_t len);
     float getBusVoltage(void);
     float getShuntVoltage(void);
     float getCurrent(void);
@@ -94,7 +95,6 @@ class ina226 {
     float shuntVoltageLSB;
     float busVoltageLSB;
 
-    void setCalibration(uint16_t cal, uint16_t avg, uint16_t vbusct, uint16_t vshct, uint16_t mode);
     int16_t getBusVoltageRaw(void);
     int16_t getShuntVoltageRaw(void);
     int16_t getCurrentRaw(void);

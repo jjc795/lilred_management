@@ -6,17 +6,10 @@
 #include "ads7828.h"
 #include "util.h"
 
-/* Configure ADC instance with important attributes */
-void ads7828::setProps(float low, float high) {
-  bottomRange = low;
-  topRange = high;
-  valueLSB = (topRange - bottomRange) / (float)(1 << 12);
-}
-
 /* Instantiate new ads7828 class */
 ads7828::ads7828(uint8_t addr, float low, float high) {
   slave_addr = addr;
-  setProps(low, high);
+  valueLSB = (high - low) / (float)(1 << 12);
 }
 
 /* Set command byte for conversion */

@@ -2,6 +2,7 @@
  * Firmware for LilRed Management System
  * 
  * Written assuming Uno Board
+ * Note: if SRAM usage is high reduce publisher/subscriber buffer size in ros.h
  */
 
 #include <Wire.h>
@@ -9,6 +10,7 @@
 #include "ads7828.h"
 #include <ros.h>
 #include <lilred_msgs/Status.h>
+#include <std_msgs/Bool.h>
 
 #define DELAY 1000
 
@@ -32,19 +34,12 @@ const int alert_24 = 2;   // PD2
 const int alert_12 = 4;   // PD4
 const int alert_5 = A1;   // PC1
 
-//void estop_cb( const std_msgs::Bool& estop_msg) {
-//  digitalWrite(estop_ctrl, estop_msg.data); // change estop by msg
-//}
+void estop_cb( const std_msgs::Bool& estop_msg) {
+  digitalWrite(estop_ctrl, estop_msg.data); // change estop by msg
+  digitalWrite(led2_ctrl, estop_msg.data); // indicator for estop -- may want pwm?
+}
 
-//void temp_cb( const std_msgs::Float32& temp_set_msg) {
-//  temp_reading = temp_set_msg.data;
-//}
-
-//ros::Subscriber<std_msgs::Bool> estop_sub("estop", &estop_cb);
-
-//ros::Subscriber<std_msgs::Float32> temp_sub("temp_set", &temp_cb);
-
-// Need subscribers for fan, led, and estop controls
+ros::Subscriber<std_msgs::Bool> estop_sub("estop", &estop_cb);
 
 lilred_msgs::Status status_msg;
 ros::Publisher status_pub("status", &status_msg);
@@ -56,8 +51,7 @@ ads7828 adc(ADC_ADDR, 0, 5);
 
 void setup() {
   nh.initNode();
-  //nh.subscribe(estop_sub);
-  //nh.subscribe(temp_sub);
+  nh.subscribe(estop_sub);
   nh.advertise(status_pub);
 
   Wire.begin();
@@ -78,7 +72,7 @@ void setup() {
 
 void loop() {
   adc.config(CHANNEL_SEL_SINGLE_0);
-  status_msg.temp1 = adc.getData(); // need to write a function to convert voltage to temp
+  status_msg.temp1 = adc.getData(); // need to write a function to convert voltage to temp -- do this on main computer?
 
   adc.config(CHANNEL_SEL_SINGLE_1);
   status_msg.temp2 = adc.getData();
@@ -104,10 +98,8 @@ void loop() {
   // Do we also want to send over shunt voltage?
   // Need to do something about alert functionality
 
-  //digitalWrite(estop_ctrl, /* corresponds to subscriber */);
-  //analogWrite(led1_ctrl, /* some number */);
-  //analogWrite(led2_ctrl, /* some number */);
-  //analogWrite(fan_ctrl, /* some number */);
+  //analogWrite(led1_ctrl, /* some number */); // indicator for ros working
+  analogWrite(fan_ctrl, 240); // might control this from server later
 
   status_pub.publish(&status_msg);
   

@@ -15,8 +15,8 @@ ina226::ina226(uint8_t addr) {
   busVoltageLSB = 1.25;  // mV
 }
 
-/* Configure based on desired settings */
-void ina226::setCalibration(uint16_t cal, uint16_t avg, uint16_t vbusct, uint16_t vshct, uint16_t mode) {
+/* Initialize hardware settings */
+void ina226::begin(uint16_t cal, uint16_t avg, uint16_t vbusct, uint16_t vshct, uint16_t mode) {
   calValue = cal;
 
   if (calValue == CALIBRATION_5V_5A) {
@@ -42,9 +42,15 @@ void ina226::setCalibration(uint16_t cal, uint16_t avg, uint16_t vbusct, uint16_
   writeRegister(slave_addr, CONFIG_REG, config);
 }
 
-/* Initialize hardware settings */
-void ina226::begin(uint16_t cal, uint16_t avg, uint16_t vbusct, uint16_t vshct, uint16_t mode) {
-  setCalibration(cal, avg, vbusct, vshct, mode);
+/* Configure the alert settings */
+void ina226::alertConfig(uint16_t func, uint16_t limit, uint16_t polarity, uint16_t len) {
+  uint16_t config = (func |
+                    polarity |
+                    len) &
+                    MASK_ENABLE_MASK;
+  writeRegister(slave_addr, MASK_ENABLE_REG, config);
+
+  writeRegister(slave_addr, ALERT_LIMIT_REG, limit);
 }
 
 /* Get raw bus voltage (bytes) */

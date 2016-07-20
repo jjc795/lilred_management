@@ -47,9 +47,5 @@ class ads7828 {
     uint8_t slave_addr;
     uint8_t command;
     float valueLSB;
-    float bottomRange;
-    float topRange;
-
-    void setProps(float low, float high);
 };
 
