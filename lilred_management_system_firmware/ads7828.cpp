@@ -20,7 +20,7 @@ ads7828::ads7828(uint8_t addr, float low, float high) {
 }
 
 /* Set command byte for conversion */
-void ads7828::config(uint8_t channel_sel, uint8_t powerdown = PWRDWN_SEL_REF_OFF_CNVR_ON) {
+void ads7828::config(uint8_t channel_sel, uint8_t powerdown) {
   command = channel_sel |
             powerdown;
 }
