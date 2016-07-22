@@ -9,7 +9,11 @@
 
 using namespace visualization_msgs;
 
+#define HZ 1
+
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
+
+bool estop_status = false;
 
 Marker makeText(InteractiveMarker &msg, bool isButton = false) {
   Marker marker;
@@ -38,8 +42,10 @@ Marker makeText(InteractiveMarker &msg, bool isButton = false) {
 void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
   ROS_INFO_STREAM("text has been moved"); // want to add in what to do on user input
 
-  if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK)
+  if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK) {
     ROS_INFO_STREAM("button click");
+    estop_status = !estop_status;
+  }
 
   server->applyChanges();
 }
@@ -130,20 +136,34 @@ void statusCallback(const lilred_msgs::Status &msg) {
 }
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "status_marker");
+  ros::init(argc, argv, "status_marker_server");
 
   ros::NodeHandle nh;
 
   ros::Subscriber status_sub = nh.subscribe("status", 1000, statusCallback);
 
-  server.reset(new interactive_markers::InteractiveMarkerServer("status_marker","",false));
+  ros::Publisher estop_pub = nh.advertise<std_msgs::Bool>("estop", 1000);
+
+  ros::Rate loop_rate(HZ);
+
+  server.reset(new interactive_markers::InteractiveMarkerServer("status_marker_server","",false));
 
   makeInteractiveText();
   makeInteractiveText(true);
 
   server->applyChanges();
 
-  ros::spin();
+  while (ros::ok()) {
+    std_msgs::Bool msg;
+    msg.data = estop_status;
+
+    estop_pub.publish(msg);
+
+    ros::spinOnce();
+
+    loop_rate.sleep();
+  }
 
   server.reset();
 }
+

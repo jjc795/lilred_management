@@ -34,9 +34,12 @@ const int alert_24 = 2;   // PD2
 const int alert_12 = 4;   // PD4
 const int alert_5 = A1;   // PC1
 
+boolean estop_status = false;
+
 void estop_cb( const std_msgs::Bool& estop_msg) {
-  digitalWrite(estop_ctrl, estop_msg.data); // change estop by msg
-  digitalWrite(led2_ctrl, estop_msg.data); // indicator for estop -- may want pwm?
+  estop_status = estop_msg.data;
+  digitalWrite(estop_ctrl, estop_status); // change estop by msg
+  digitalWrite(led2_ctrl, estop_status); // indicator for estop -- may want pwm?
 }
 
 ros::Subscriber<std_msgs::Bool> estop_sub("estop", &estop_cb);
@@ -94,6 +97,8 @@ void loop() {
   status_msg.current_24 = monitor_24V.getCurrent();
   status_msg.voltage_24 = monitor_24V.getBusVoltage();
   status_msg.power_24 = monitor_24V.getPower();
+
+  status_msg.estop_status = estop_status;
 
   // Do we also want to send over shunt voltage?
   // Need to do something about alert functionality
