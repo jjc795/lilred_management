@@ -7,9 +7,9 @@
 #include <string>
 #include <sstream>
 
-using namespace visualization_msgs;
-
 #define HZ 1
+
+using namespace visualization_msgs;
 
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
@@ -26,26 +26,41 @@ Marker makeText(InteractiveMarker &msg, bool isButton = false) {
     marker.color.g = 0.0;
     marker.color.b = 0.0;
     marker.color.a = 1.0;
-    marker.text = "ESTOP";
+    marker.text = "ESTOP: OFF";
   }
   else {
     marker.color.r = 0.5;
     marker.color.g = 0.5;
     marker.color.b = 0.5;
     marker.color.a = 1.0;
-    marker.text = "Test";
+    std::ostringstream status_start;
+    status_start << "Temp 1: 0.0 \n"
+                 << "Temp 2: 0.0 \n"
+                 << "Temp 3: 0.0 \n"
+                 << "Temp 4: 0.0 \n"
+                 << "24V Bus Current: 0.0 \n"
+                 << "24V Bus Voltage: 0.0 \n"
+                 << "24V Bus Power: 0.0 \n"
+                 << "12V Bus Current: 0.0 \n"
+                 << "12V Bus Voltage: 0.0 \n"
+                 << "12V Bus Power: 0.0 \n"
+                 << "5V Bus Current: 0.0 \n"
+                 << "5V Bus Voltage: 0.0 \n"
+                 << "5V Bus Power: 0.0" << std::endl;
+    marker.text = status_start.str();
   }
 
   return marker;
 }
 
 void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
-  ROS_INFO_STREAM("text has been moved"); // want to add in what to do on user input
-
   if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK) {
     ROS_INFO_STREAM("button click");
     estop_status = !estop_status;
   }
+  else if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE)
+    ROS_INFO_STREAM(feedback->marker_name << " is now at " << feedback->pose.position.x << ", "
+                  << feedback->pose.position.y << ", " << feedback->pose.position.z);
 
   server->applyChanges();
 }
@@ -63,6 +78,9 @@ void makeInteractiveText(bool isButton = false) {
 
   if (isButton) {
     int_marker.name = "estop_marker";
+    int_marker.pose.position.x = 0.0;
+    int_marker.pose.position.y = 0.0;
+    int_marker.pose.position.z = 0.0;
     marker = makeText(int_marker, true);
 
     control.interaction_mode = InteractiveMarkerControl::BUTTON;
@@ -70,6 +88,9 @@ void makeInteractiveText(bool isButton = false) {
   }
   else {
     int_marker.name = "status_marker";
+    int_marker.pose.position.x = 0.0;
+    int_marker.pose.position.y = 0.0;
+    int_marker.pose.position.z = 0.0;
     marker = makeText(int_marker);
 
     control.interaction_mode = InteractiveMarkerControl::MOVE_3D;
@@ -102,10 +123,11 @@ void statusCallback(const lilred_msgs::Status &msg) {
   float voltage_5 = msg.voltage_5;
   float power_5 = msg.power_5;
 
-  InteractiveMarker int_marker;
-  server->get("status_marker", int_marker);
+  InteractiveMarker status_marker, estop_marker;
+  server->get("status_marker", status_marker);
+  server->get("estop_marker", estop_marker);
 
-  std::ostringstream status_str;
+  std::ostringstream status_str, estop_str;
   status_str << "Temp 1: " << temp1 << "\n"
              << "Temp 2: " << temp2 << "\n"
              << "Temp 3: " << temp3 << "\n"
@@ -118,20 +140,33 @@ void statusCallback(const lilred_msgs::Status &msg) {
              << "12V Bus Power: " << power_12 << "\n"
              << "5V Bus Current: " << current_5 << "\n"
              << "5V Bus Voltage: " << voltage_5 << "\n"
-             << "5V Bus Power: " << power_5 << "\n";
+             << "5V Bus Power: " << power_5 << std::endl;
 
-  InteractiveMarkerControl text_control =  int_marker.controls.back();
+  if (estop_status)
+    estop_str << "ESTOP: ON";
+  else
+    estop_str << "ESTOP: OFF";
+
+  InteractiveMarkerControl text_control =  status_marker.controls.back();
   Marker text_marker = text_control.markers.back();
+  InteractiveMarkerControl button_control = estop_marker.controls.back();
+  Marker button_marker = button_control.markers.back();
 
-  int_marker.controls.clear();
+  status_marker.controls.clear();
   text_control.markers.clear();
+  estop_marker.controls.clear();
+  button_control.markers.clear();
 
   text_marker.text = status_str.str();
+  button_marker.text = estop_str.str();
 
   text_control.markers.push_back(text_marker);
-  int_marker.controls.push_back(text_control);
+  status_marker.controls.push_back(text_control);
+  button_control.markers.push_back(button_marker);
+  estop_marker.controls.push_back(button_control);
 
-  server->insert(int_marker);
+  server->insert(status_marker);
+  server->insert(estop_marker);
   server->applyChanges();
 }
 
