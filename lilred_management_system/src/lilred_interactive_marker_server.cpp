@@ -38,9 +38,9 @@ Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
   marker.type = Marker::TEXT_VIEW_FACING;
   marker.scale.z = msg.scale * 0.45;
   marker.text = status_text[text_id];
-  marker.position.pose.x = msg.position.pose.x;
-  marker.position.pose.y = msg.position.pose.y;
-  marker.position.pose.z = msg.position.pose.z - marker.scale.z * 0.2 * text_id;
+  marker.pose.position.x = msg.pose.position.x;
+  marker.pose.position.y = msg.pose.position.y;
+  marker.pose.position.z = msg.pose.position.z - marker.scale.z * 1.2 * text_id;
 
   if (isButton) {
     marker.color.r = 1.0;
@@ -123,7 +123,7 @@ void makeInteractiveText(bool isButton = false) {
       control.markers.push_back(marker[i]);
     }
 
-    control.interaction_mode = InteractiveMarkerControl::MOVE_3D;
+    control.interaction_mode = InteractiveMarkerControl::MOVE_ROTATE_3D;
     control.name = "move_3d";
   }
 
