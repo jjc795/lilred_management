@@ -11,21 +11,20 @@
 
 using namespace visualization_msgs;
 
-const std::vector<std::string> status_text ({"Temp 1: ",
-                                            "Temp 2: ",
-                                            "Temp 3: ",
-                                            "Temp 4: ",
-                                            "24V Bus Current: ",
-                                            "24V Bus Voltage: ",
-                                            "24V Bus Power: ",
-                                            "12V Bus Current: ",
-                                            "12V Bus Voltage: ",
-                                            "12V Bus Power: ",
-                                            "5V Bus Current: ",
-                                            "5V Bus Voltage: ",
-                                            "5V Bus Power: "} );
-
-const std::string estop_text ("ESTOP: ");
+std::string status_text[] = {"Temp 1: ",
+                             "Temp 2: ",
+                             "Temp 3: ",
+                             "Temp 4: ",
+                             "24V Bus Current: ",
+                             "24V Bus Voltage: ",
+                             "24V Bus Power: ",
+                             "12V Bus Current: ",
+                             "12V Bus Voltage: ",
+                             "12V Bus Power: ",
+                             "5V Bus Current: ",
+                             "5V Bus Voltage: ",
+                             "5V Bus Power: ",
+                             "ESTOP: "};
 
 //const float thermResponse
 
@@ -33,12 +32,15 @@ boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 bool estop_status = false;
 
-Marker makeText(InteractiveMarker &msg, const std::string text, bool isButton = false) {
+Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
   Marker marker;
 
   marker.type = Marker::TEXT_VIEW_FACING;
   marker.scale.z = msg.scale * 0.45;
-  marker.text = text;
+  marker.text = status_text[text_id];
+  marker.position.pose.x = msg.position.pose.x;
+  marker.position.pose.y = msg.position.pose.y;
+  marker.position.pose.z = msg.position.pose.z - marker.scale.z * 0.2 * text_id;
 
   if (isButton) {
     marker.color.r = 1.0;
@@ -69,10 +71,22 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
     ROS_INFO_STREAM("button click");
     estop_status = !estop_status;
   }
-  else if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE)
+  else if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE) {
     ROS_INFO_STREAM(feedback->marker_name << " is now at " << feedback->pose.position.x << ", "
                   << feedback->pose.position.y << ", " << feedback->pose.position.z);
 
+    if (feedback->marker_name == "status_marker") {
+      InteractiveMarker estop_marker;
+      server->get("estop_marker", estop_marker);
+
+      estop_marker.pose.position.x = feedback->pose.position.x;
+      estop_marker.pose.position.y = feedback->pose.position.y;
+      estop_marker.pose.position.z = feedback->pose.position.z;
+
+      server->insert(estop_marker);
+    }
+  }
+  
   server->applyChanges();
 }
 
@@ -91,7 +105,7 @@ void makeInteractiveText(bool isButton = false) {
     int_marker.pose.position.x = 0.0;
     int_marker.pose.position.y = 0.0;
     int_marker.pose.position.z = 0.0;
-    Marker marker = makeText(int_marker, estop_text, true);
+    Marker marker = makeText(int_marker, 13, true);
 
     control.interaction_mode = InteractiveMarkerControl::BUTTON;
     control.name = "text_button";
@@ -105,7 +119,7 @@ void makeInteractiveText(bool isButton = false) {
 
     Marker marker[13];
     for (int i = 0; i < 13; i++) {
-      marker[i] = makeText(int_marker, status_text[i]);
+      marker[i] = makeText(int_marker, i);
       control.markers.push_back(marker[i]);
     }
 
@@ -153,9 +167,9 @@ void statusCallback(const lilred_msgs::Status &msg) {
     status_str[i] << status_text[i] << status[i];
 
   if (estop_status)
-    estop_str << estop_text << "ON";
+    estop_str << status_text[13] << "ON";
   else
-    estop_str << estop_text << "OFF";
+    estop_str << status_text[13] << "OFF";
 
   InteractiveMarkerControl text_control =  status_marker.controls.back();
   std::vector<Marker> text_markers = text_control.markers;
