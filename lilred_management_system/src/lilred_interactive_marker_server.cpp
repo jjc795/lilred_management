@@ -11,21 +11,21 @@
 
 using namespace visualization_msgs;
 
-const char* status_text[] = { (char*)"Temp 1: ",
-                              (char*)"Temp 2: ",
-                              (char*)"Temp 3: ",
-                              (char*)"Temp 4: ",
-                              (char*)"24V Bus Current: ",
-                              (char*)"24V Bus Voltage: ",
-                              (char*)"24V Bus Power: ",
-                              (char*)"12V Bus Current: ",
-                              (char*)"12V Bus Voltage: ",
-                              (char*)"12V Bus Power: ",
-                              (char*)"5V Bus Current: ",
-                              (char*)"5V Bus Voltage: ",
-                              (char*)"5V Bus Power: " };
+const std::vector<std::string> status_text ({"Temp 1: ",
+                                            "Temp 2: ",
+                                            "Temp 3: ",
+                                            "Temp 4: ",
+                                            "24V Bus Current: ",
+                                            "24V Bus Voltage: ",
+                                            "24V Bus Power: ",
+                                            "12V Bus Current: ",
+                                            "12V Bus Voltage: ",
+                                            "12V Bus Power: ",
+                                            "5V Bus Current: ",
+                                            "5V Bus Voltage: ",
+                                            "5V Bus Power: "} );
 
-const char* estop_text = "ESTOP: ";
+const std::string estop_text ("ESTOP: ");
 
 //const float thermResponse
 
@@ -33,7 +33,7 @@ boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 bool estop_status = false;
 
-Marker makeText(InteractiveMarker &msg, const char* text, bool isButton = false) {
+Marker makeText(InteractiveMarker &msg, const std::string text, bool isButton = false) {
   Marker marker;
 
   marker.type = Marker::TEXT_VIEW_FACING;
