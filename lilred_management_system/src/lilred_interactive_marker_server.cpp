@@ -11,29 +11,29 @@
 
 using namespace visualization_msgs;
 
-const char status_text[14][] = { "Temp 1: ",
-                               "Temp 2: ",
-                               "Temp 3: ",
-                               "Temp 4: ",
-                               "24V Bus Current: ",
-                               "24V Bus Voltage: ",
-                               "24V Bus Power: ",
-                               "12V Bus Current: ",
-                               "12V Bus Voltage: ",
-                               "12V Bus Power: ",
-                               "5V Bus Current: ",
-                               "5V Bus Voltage: ",
-                               "5V Bus Power: " }
+const char* status_text[] = { (char*)"Temp 1: ",
+                              (char*)"Temp 2: ",
+                              (char*)"Temp 3: ",
+                              (char*)"Temp 4: ",
+                              (char*)"24V Bus Current: ",
+                              (char*)"24V Bus Voltage: ",
+                              (char*)"24V Bus Power: ",
+                              (char*)"12V Bus Current: ",
+                              (char*)"12V Bus Voltage: ",
+                              (char*)"12V Bus Power: ",
+                              (char*)"5V Bus Current: ",
+                              (char*)"5V Bus Voltage: ",
+                              (char*)"5V Bus Power: " };
 
-const char estop_text[8] = "ESTOP: ";
+const char* estop_text = "ESTOP: ";
 
-//const float thermResponse 
+//const float thermResponse
 
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 bool estop_status = false;
 
-Marker makeText(InteractiveMarker &msg, char* text, bool isButton = false) {
+Marker makeText(InteractiveMarker &msg, const char* text, bool isButton = false) {
   Marker marker;
 
   marker.type = Marker::TEXT_VIEW_FACING;
@@ -45,14 +45,12 @@ Marker makeText(InteractiveMarker &msg, char* text, bool isButton = false) {
     marker.color.g = 0.0;
     marker.color.b = 0.0;
     marker.color.a = 1.0;
-    //marker.text = text
   }
   else {
     marker.color.r = 0.5;
     marker.color.g = 0.5;
     marker.color.b = 0.5;
     marker.color.a = 1.0;
-    //marker.text = text;
   }
 
   return marker;
@@ -63,7 +61,7 @@ float voltageToTemp(float voltage) {
   float vcc = 5; // volts
 
   float resTherm = resPullup * (voltage / (vcc - voltage)); // thermistor resistance in ohms
-  return resToTemp(resTherm); // temperature in degree celsius
+//  return resToTemp(resTherm); // temperature in degree celsius
 }
 
 void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
@@ -105,17 +103,16 @@ void makeInteractiveText(bool isButton = false) {
     int_marker.pose.position.y = 0.0;
     int_marker.pose.position.z = 0.0;
 
-    Marker marker[14];
-    for (int i = 0; i < 14; i++) {
+    Marker marker[13];
+    for (int i = 0; i < 13; i++) {
       marker[i] = makeText(int_marker, status_text[i]);
-      control.markers.push_back(marker[i])
+      control.markers.push_back(marker[i]);
     }
 
     control.interaction_mode = InteractiveMarkerControl::MOVE_3D;
     control.name = "move_3d";
   }
 
-  //control.markers.push_back(marker);
   control.always_visible = true;
   int_marker.controls.push_back(control);
 
@@ -149,25 +146,11 @@ void statusCallback(const lilred_msgs::Status &msg) {
   server->get("status_marker", status_marker);
   server->get("estop_marker", estop_marker);
 
-  std::ostringstream status_str[14];
+  std::ostringstream status_str[13];
   std::ostringstream estop_str;
 
-  for (int i = 0; i < 14; i++)
+  for (int i = 0; i < 13; i++)
     status_str[i] << status_text[i] << status[i];
-
-  /*status_str << "Temp 1: " << temp1 << "\n"
-             << "Temp 2: " << temp2 << "\n"
-             << "Temp 3: " << temp3 << "\n"
-             << "Temp 4: " << temp4 << "\n"
-             << "24V Bus Current: " << current_24 << "\n"
-             << "24V Bus Voltage: " << voltage_24 << "\n"
-             << "24V Bus Power: " << power_24 << "\n"
-             << "12V Bus Current: " << current_12 << "\n"
-             << "12V Bus Voltage: " << voltage_12 << "\n"
-             << "12V Bus Power: " << power_12 << "\n"
-             << "5V Bus Current: " << current_5 << "\n"
-             << "5V Bus Voltage: " << voltage_5 << "\n"
-             << "5V Bus Power: " << power_5 << std::endl;*/
 
   if (estop_status)
     estop_str << estop_text << "ON";
@@ -175,23 +158,21 @@ void statusCallback(const lilred_msgs::Status &msg) {
     estop_str << estop_text << "OFF";
 
   InteractiveMarkerControl text_control =  status_marker.controls.back();
-  Marker* text_markers = text_control.markers;
+  std::vector<Marker> text_markers = text_control.markers;
   InteractiveMarkerControl button_control = estop_marker.controls.back();
   Marker button_marker = button_control.markers.back();
 
   status_marker.controls.clear();
-  text_control.markers.clear(); // this might cause an issue
+  text_control.markers.clear();
   estop_marker.controls.clear();
   button_control.markers.clear();
 
-  for (int i = 0; i < 14; i++) {
-    text_markers[i] = status_str[i].str();
-    text_control.markers.push_back(text_markers[i]);
-  }
+  for (int i = 0; i < 13; i++)
+    text_markers[i].text = status_str[i].str();
 
   button_marker.text = estop_str.str();
 
-  //text_control.markers.push_back(text_marker);
+  text_control.markers = text_markers;
   status_marker.controls.push_back(text_control);
   button_control.markers.push_back(button_marker);
   estop_marker.controls.push_back(button_control);
