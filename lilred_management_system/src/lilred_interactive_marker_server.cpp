@@ -9,6 +9,10 @@
 
 #define HZ 1
 
+#define STATUS_MARKER 0
+#define ESTOP_MARKER  1
+#define FAN_MARKER    2
+
 using namespace visualization_msgs;
 
 std::string status_text[] = {"Temp 1: ",
@@ -24,6 +28,7 @@ std::string status_text[] = {"Temp 1: ",
                              "5V Bus Current: ",
                              "5V Bus Voltage: ",
                              "5V Bus Power: ",
+                             "Fan Setting: "
                              "ESTOP: "};
 
 //const float thermResponse
@@ -34,7 +39,8 @@ bool estop_status = false;
 bool prev_server_estop = false;
 bool prev_client_estop = false;
 
-uint8_t fan_set = 0;
+const uint8_t fan_settings[] = {0, 64, 128, 191, 255};
+uint8_t *fan_set = fan_settings;
 
 Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
   Marker marker;
@@ -72,63 +78,115 @@ float voltageToTemp(float voltage) {
 
 void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
   if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK) {
-    ROS_INFO_STREAM("button click");
-    estop_status = !estop_status;
+    ROS_INFO_STREAM(feedback->marker_name << "has been clicked");
+
+    if (feedback->marker_name == "estop_marker")
+      estop_status = !estop_status;
+    else if (feedback->marker_name == "fan_marker") {
+      if (fan_set >= fan_settings + sizeof(fan_settings))
+        fan_set = fan_settings;
+      else
+        fan_set += sizeof(uint8_t);
+
+      InteractiveMarker fan_marker;
+      server->get("fan_marker", fan_marker);
+
+      std::ostringstream fan_str;
+      fan_str << status_text[13];
+
+      if (fan_set* == fan_settings[0])
+        fan_str << "0%";
+      else if (fan_set* == fan_settings[1])
+        fan_str << "25%";
+      else if (fan_str* == fan_settings[2])
+        fan_str << "50%";
+      else if (fan_str* == fan_settings[3])
+        fan_str << "75%";
+      else if (fan_str* == fan_settings[4])
+        fan_str << "100%";
+      else
+        fan_str << "ERROR";
+
+      InteractiveMarkerControl button_control = fan_marker.controls.back();
+      Marker button_marker = button_control.markers.back();
+
+      fan_marker.controls.clear();
+      button_control.markers.clear();
+
+      button_marker.text = fan_str.str();
+
+      button_control.markers.push_back(button_marker);
+      fan_marker.controls.push_back(button_control);
+
+      server->insert(fan_marker);
+    }
   }
   else if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE) {
     ROS_INFO_STREAM(feedback->marker_name << " is now at " << feedback->pose.position.x << ", "
                   << feedback->pose.position.y << ", " << feedback->pose.position.z);
 
     if (feedback->marker_name == "status_marker") {
-      InteractiveMarker estop_marker;
+      InteractiveMarker estop_marker, fan_marker;
       server->get("estop_marker", estop_marker);
+      server->get("fan_marker", fan_marker);
 
       estop_marker.pose.position.x = feedback->pose.position.x;
       estop_marker.pose.position.y = feedback->pose.position.y;
       estop_marker.pose.position.z = feedback->pose.position.z;
 
+      fan_marker.pose.position.x = feedback->pose.position.x;
+      fan_marker.pose.position.y = feedback->pose.position.y;
+      fan_marker.pose.position.z = feedback->pose.position.z;
+
       server->insert(estop_marker);
+      server->insert(fan_marker);
     }
   }
 
   server->applyChanges();
 }
 
-void makeInteractiveText(bool isButton = false) {
-  // TODO: Keep estop marker attached to bottom of status marker
-
+void makeInteractiveText(int type) {
   InteractiveMarker int_marker;
   int_marker.header.frame_id = "base_link";
   int_marker.header.stamp = ros::Time::now();
   int_marker.scale = 1;
 
+  int_marker.pose.position.x = 0.0;
+  int_marker.pose.position.y = 0.0;
+  int_marker.pose.position.z = 0.0;
+
   InteractiveMarkerControl control;
 
-  if (isButton) {
-    int_marker.name = "estop_marker";
-    int_marker.pose.position.x = 0.0;
-    int_marker.pose.position.y = 0.0;
-    int_marker.pose.position.z = 0.0;
-    Marker marker = makeText(int_marker, 13, true);
+  switch (type) {
+    case STATUS_MARKER: { int_marker.name = "status_marker";
 
-    control.interaction_mode = InteractiveMarkerControl::BUTTON;
-    control.name = "text_button";
-    control.markers.push_back(marker);
-  }
-  else {
-    int_marker.name = "status_marker";
-    int_marker.pose.position.x = 0.0;
-    int_marker.pose.position.y = 0.0;
-    int_marker.pose.position.z = 0.0;
+                          Marker marker[13];
+                          for (int i = 0; i < 13; i++) {
+                            marker[i] = makeText(int_marker, i);
+                            control.markers.push_back(marker[i]);
+                          }
 
-    Marker marker[13];
-    for (int i = 0; i < 13; i++) {
-      marker[i] = makeText(int_marker, i);
-      control.markers.push_back(marker[i]);
-    }
+                          control.interaction_mode = InteractiveMarkerControl::MOVE_ROTATE_3D;
+                          control.name = "move_3d"; 
+                          break;
+                        }
+    case ESTOP_MARKER:  { int_marker.name = "estop_marker";
+                          Marker marker = makeText(int_marker, 14, true);
 
-    control.interaction_mode = InteractiveMarkerControl::MOVE_ROTATE_3D;
-    control.name = "move_3d";
+                          control.interaction_mode = InteractiveMarkerControl::BUTTON;
+                          control.name = "text_button";
+                          control.markers.push_back(marker);
+                          break;
+                        }
+    case FAN_MARKER:    { int_marker.name = "fan_marker";
+                          Marker marker = makeText(int_marker, 13, true);
+
+                          control.interaction_mode = InteractiveMarkerControl::BUTTON;
+                          control.name = "text_button";
+                          control.markers.push_back(marker);
+                          break;
+                        }
   }
 
   control.always_visible = true;
@@ -166,7 +224,6 @@ void statusCallback(const lilred_msgs::Status &msg) {
     }
   }
   prev_client_estop = status[13];
-  //prev_server_estop = estop_status;
 
   InteractiveMarker status_marker, estop_marker;
   server->get("status_marker", status_marker);
@@ -179,9 +236,9 @@ void statusCallback(const lilred_msgs::Status &msg) {
     status_str[i] << status_text[i] << status[i];
 
   if (estop_status)
-    estop_str << status_text[13] << "ON";
+    estop_str << status_text[14] << "ON";
   else
-    estop_str << status_text[13] << "OFF";
+    estop_str << status_text[14] << "OFF";
 
   InteractiveMarkerControl text_control =  status_marker.controls.back();
   std::vector<Marker> text_markers = text_control.markers;
@@ -221,15 +278,35 @@ int main(int argc, char** argv) {
 
   server.reset(new interactive_markers::InteractiveMarkerServer("status_marker_server","",false));
 
-  makeInteractiveText();
-  makeInteractiveText(true);
+  makeInteractiveText(STATUS_MARKER);
+  makeInteractiveText(ESTOP_MARKER);
+  makeInteractiveText(FAN_MARKER);
+
+  InteractiveMarker fan_marker;
+  server->get("fan_marker", fan_marker);
+
+  std::ostringstream fan_str;
+  fan_str << status_text[13] << "0%";
+
+  InteractiveMarkerControl button_control = fan_marker.controls.back();
+  Marker button_marker = button_control.markers.back();
+
+  fan_marker.controls.clear();
+  button_control.markers.clear();
+
+  button_marker.text = fan_str.str();
+
+  button_control.markers.push_back(button_marker);
+  fan_marker.controls.push_back(button_control);
+
+  server->insert(fan_marker);
 
   server->applyChanges();
 
   while (ros::ok()) {
     lilred_msgs::Command msg;
     msg.estop_status = estop_status;
-    msg.fan_ctrl = fan_set;
+    msg.fan_ctrl = *fan_set;
     msg.header.stamp = ros::Time::now();
 
     command_pub.publish(msg);
