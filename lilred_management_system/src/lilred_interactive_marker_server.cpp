@@ -31,6 +31,9 @@ std::string status_text[] = {"Temp 1: ",
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 bool estop_status = false;
+bool prev_server_estop = false;
+bool prev_client_estop = false;
+
 uint8_t fan_set = 0;
 
 Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
@@ -157,6 +160,14 @@ void statusCallback(const lilred_msgs::Status &msg) {
 
   status[13] = msg.estop_status;
 
+  if (!estop_status && status[13]) {
+    if (!prev_server_estop && !prev_client_estop) {
+      estop_status = true;
+    }
+  }
+  prev_client_estop = status[13];
+  //prev_server_estop = estop_status;
+
   InteractiveMarker status_marker, estop_marker;
   server->get("status_marker", status_marker);
   server->get("estop_marker", estop_marker);
@@ -222,6 +233,8 @@ int main(int argc, char** argv) {
     msg.header.stamp = ros::Time::now();
 
     command_pub.publish(msg);
+
+    prev_server_estop = estop_status;
 
     ros::spinOnce();
 
