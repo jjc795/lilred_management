@@ -10,9 +10,10 @@
 #include "ads7828.h"
 #include <ros.h>
 #include <lilred_msgs/Status.h>
-#include <std_msgs/Bool.h>
+#include <lilred_msgs/Command.h>
 
 #define DELAY 1000
+#define TIMEOUT_NUM 3
 
 /* Device I2C Addresses */
 
@@ -35,14 +36,18 @@ const int alert_12 = 4;   // PD4
 const int alert_5 = A1;   // PC1
 
 boolean estop_status = false;
+uint8_t fan_set = 0;
+uint32_t prevSubNum = 0;
+uint32_t currentSubNum = 0;
 
-void estop_cb( const std_msgs::Bool& estop_msg) {
-  estop_status = estop_msg.data;
-  digitalWrite(estop_ctrl, estop_status); // change estop by msg
-  digitalWrite(led2_ctrl, estop_status); // indicator for estop -- may want pwm?
+void command_cb( const lilred_msgs::Command& command_msg) {
+  prevSubNum = currentSubNum;
+  currentSubNum = command_msg.header.seq;
+  estop_status = command_msg.estop_status;
+  fan_set = command_msg.fan_ctrl;
 }
 
-ros::Subscriber<std_msgs::Bool> estop_sub("estop", &estop_cb);
+ros::Subscriber<lilred_msgs::Command> command_sub("commands", &command_cb);
 
 lilred_msgs::Status status_msg;
 ros::Publisher status_pub("status", &status_msg);
@@ -54,7 +59,7 @@ ads7828 adc(ADC_ADDR, 0, 5);
 
 void setup() {
   nh.initNode();
-  nh.subscribe(estop_sub);
+  nh.subscribe(command_sub);
   nh.advertise(status_pub);
 
   Wire.begin();
@@ -74,6 +79,17 @@ void setup() {
 }
 
 void loop() {
+  digitalWrite(estop_ctrl, estop_status); // change estop by msg
+  digitalWrite(led2_ctrl, estop_status); // indicator for estop -- may want pwm?
+  analogWrite(fan_ctrl, fan_set); // control fan
+
+  if (currentSubNum - prevSubNum < TIMEOUT_NUM) 
+    digitalWrite(led1_ctrl, HIGH); // indicator for ros working
+  else {
+    digitalWrite(led1_ctrl, LOW); // ros not working
+    estop_status = true; // halt operation
+  }
+  
   adc.config(CHANNEL_SEL_SINGLE_0);
   status_msg.temp1 = adc.getData(); // need to write a function to convert voltage to temp -- do this on main computer?
 
@@ -100,11 +116,9 @@ void loop() {
 
   status_msg.estop_status = estop_status;
 
-  // Do we also want to send over shunt voltage?
-  // Need to do something about alert functionality
+  status_msg.header.stamp = nh.now();
 
-  //analogWrite(led1_ctrl, /* some number */); // indicator for ros working
-  analogWrite(fan_ctrl, 240); // might control this from server later
+  // Need to do something about alert functionality
 
   status_pub.publish(&status_msg);
   

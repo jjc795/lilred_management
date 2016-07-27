@@ -2,7 +2,7 @@
 
 #include <interactive_markers/interactive_marker_server.h>
 #include <lilred_msgs/Status.h>
-#include <std_msgs/Bool.h>
+#include <lilred_msgs/Command.h>
 
 #include <string>
 #include <sstream>
@@ -31,6 +31,7 @@ std::string status_text[] = {"Temp 1: ",
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 bool estop_status = false;
+uint8_t fan_set = 0;
 
 Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
   Marker marker;
@@ -86,7 +87,7 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
       server->insert(estop_marker);
     }
   }
-  
+
   server->applyChanges();
 }
 
@@ -203,7 +204,7 @@ int main(int argc, char** argv) {
 
   ros::Subscriber status_sub = nh.subscribe("status", 1000, statusCallback);
 
-  ros::Publisher estop_pub = nh.advertise<std_msgs::Bool>("estop", 1000);
+  ros::Publisher command_pub = nh.advertise<lilred_msgs::Command>("commands", 1000);
 
   ros::Rate loop_rate(HZ);
 
@@ -215,10 +216,12 @@ int main(int argc, char** argv) {
   server->applyChanges();
 
   while (ros::ok()) {
-    std_msgs::Bool msg;
-    msg.data = estop_status;
+    lilred_msgs::Command msg;
+    msg.estop_status = estop_status;
+    msg.fan_ctrl = fan_set;
+    msg.header.stamp = ros::Time::now();
 
-    estop_pub.publish(msg);
+    command_pub.publish(msg);
 
     ros::spinOnce();
 
