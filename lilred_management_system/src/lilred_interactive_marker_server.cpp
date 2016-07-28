@@ -7,7 +7,7 @@
 #include <string>
 #include <sstream>
 
-#include "thermistor.h"
+#include "lilred_management_system/thermistor.h"
 
 #define HZ 1
 
@@ -227,8 +227,8 @@ void statusCallback(const lilred_msgs::Status &msg) {
   prev_client_estop = status[13];
 
   thermistor thermistor(resistances);
-  thermistor.setResPullup = 30000;
-  thermistor.setVcc = 5;
+  thermistor.setResPullup(30000);
+  thermistor.setVcc(5);
   thermistor.fillRtTable(-55, 300, 5);
 
   status[0] = thermistor.voltageToTemp(status[0]);
@@ -243,8 +243,14 @@ void statusCallback(const lilred_msgs::Status &msg) {
   std::ostringstream status_str[13];
   std::ostringstream estop_str;
 
-  for (int i = 0; i < 13; i++)
-    status_str[i] << status_text[i] << status[i];
+  for (int i = 0; i < 13; i++) {
+    status_str[i] << status_text[i];
+
+    if (status[i] == ERROR_VALUE && i < 4)
+      status_str[i] << "OUT OF RANGE";
+    else
+      status_str[i] << status[i];
+  }
 
   if (estop_status)
     estop_str << status_text[14] << "ON";

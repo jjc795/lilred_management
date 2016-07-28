@@ -1,3 +1,7 @@
+#include <vector>
+
+#define ERROR_VALUE 1000
+
 class line {
 public:
 	line(float point1_x, float point1_y, float point2_x, float point2_y);
@@ -23,5 +27,5 @@ private:
 	float* resValues;
 	std::vector<line> rtLines;
 
-	void* rtLineSearch(void* key, void* base, size_t num, size_t size);
+	line* rtLineSearch(float* key, float* base, std::size_t num, std::size_t size);
 };
