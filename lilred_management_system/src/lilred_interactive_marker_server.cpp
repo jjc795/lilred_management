@@ -28,7 +28,7 @@ std::string status_text[] = {"Temp 1: ",
                              "5V Bus Current: ",
                              "5V Bus Voltage: ",
                              "5V Bus Power: ",
-                             "Fan Setting: "
+                             "Fan Setting: ",
                              "ESTOP: "};
 
 //const float thermResponse
@@ -39,7 +39,7 @@ bool estop_status = false;
 bool prev_server_estop = false;
 bool prev_client_estop = false;
 
-const uint8_t fan_settings[] = {0, 64, 128, 191, 255};
+uint8_t fan_settings[] = {0, 64, 128, 191, 255};
 uint8_t *fan_set = fan_settings;
 
 Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
@@ -78,12 +78,12 @@ float voltageToTemp(float voltage) {
 
 void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
   if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK) {
-    ROS_INFO_STREAM(feedback->marker_name << "has been clicked");
+    ROS_INFO_STREAM(feedback->marker_name << " has been clicked");
 
     if (feedback->marker_name == "estop_marker")
       estop_status = !estop_status;
     else if (feedback->marker_name == "fan_marker") {
-      if (fan_set >= fan_settings + sizeof(fan_settings))
+      if (fan_set >= fan_settings + sizeof(fan_settings) - sizeof(fan_settings[0]))
         fan_set = fan_settings;
       else
         fan_set += sizeof(uint8_t);
@@ -94,15 +94,15 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
       std::ostringstream fan_str;
       fan_str << status_text[13];
 
-      if (fan_set* == fan_settings[0])
+      if (*fan_set == fan_settings[0])
         fan_str << "0%";
-      else if (fan_set* == fan_settings[1])
+      else if (*fan_set == fan_settings[1])
         fan_str << "25%";
-      else if (fan_str* == fan_settings[2])
+      else if (*fan_set == fan_settings[2])
         fan_str << "50%";
-      else if (fan_str* == fan_settings[3])
+      else if (*fan_set == fan_settings[3])
         fan_str << "75%";
-      else if (fan_str* == fan_settings[4])
+      else if (*fan_set == fan_settings[4])
         fan_str << "100%";
       else
         fan_str << "ERROR";
@@ -281,6 +281,8 @@ int main(int argc, char** argv) {
   makeInteractiveText(STATUS_MARKER);
   makeInteractiveText(ESTOP_MARKER);
   makeInteractiveText(FAN_MARKER);
+
+  server->applyChanges();
 
   InteractiveMarker fan_marker;
   server->get("fan_marker", fan_marker);
