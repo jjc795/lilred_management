@@ -1,6 +1,8 @@
+/* Header file for thermistor related functionality */
+
 #include <vector>
 
-#define ERROR_VALUE 1000
+#define ERROR_VALUE 1000 // so we know when things are out of range
 
 class line {
 public:

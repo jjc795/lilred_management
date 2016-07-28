@@ -17,6 +17,7 @@
 
 using namespace visualization_msgs;
 
+// the base text to display
 std::string status_text[] = {"Temp 1: ",
                              "Temp 2: ",
                              "Temp 3: ",
@@ -33,6 +34,7 @@ std::string status_text[] = {"Temp 1: ",
                              "Fan Setting: ",
                              "ESTOP: "};
 
+// thermistor resistances ordered from lower to higher temps
 float resistances[] = {526240, 384520, 284010, 211940, 159720, 121490, 93246, 72181, 56332,
               44308, 35112, 28024, 22520, 18216, 14827, 12142, 10000, 8281.8, 6895.4,
               5770.3, 4852.5, 4100, 3479.8, 2966.3, 2539.2, 2182.4, 1883, 1630.7,
@@ -44,13 +46,14 @@ float resistances[] = {526240, 384520, 284010, 211940, 159720, 121490, 93246, 72
 
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
-bool estop_status = false;
+bool estop_status = false; // default is not triggered
 bool prev_server_estop = false;
 bool prev_client_estop = false;
 
-uint8_t fan_settings[] = {0, 64, 128, 191, 255};
-uint8_t *fan_set = fan_settings;
+uint8_t fan_settings[] = {0, 64, 128, 191, 255}; // approx 0%, 25%, 50%, 75%, 100%
+uint8_t *fan_set = fan_settings; // default is 0%
 
+/* Creates basic text markers for interactive markers */
 Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
   Marker marker;
 
@@ -77,18 +80,21 @@ Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
   return marker;
 }
 
+/* Callback for user feedback from rviz */
 void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
   if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::BUTTON_CLICK) {
     ROS_INFO_STREAM(feedback->marker_name << " has been clicked");
 
     if (feedback->marker_name == "estop_marker")
       estop_status = !estop_status;
+    // cycle through fan settings
     else if (feedback->marker_name == "fan_marker") {
       if (fan_set >= fan_settings + sizeof(fan_settings) - sizeof(fan_settings[0]))
         fan_set = fan_settings;
       else
         fan_set += sizeof(uint8_t);
 
+      // visually update fan marker text
       InteractiveMarker fan_marker;
       server->get("fan_marker", fan_marker);
 
@@ -126,6 +132,7 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
     ROS_INFO_STREAM(feedback->marker_name << " is now at " << feedback->pose.position.x << ", "
                   << feedback->pose.position.y << ", " << feedback->pose.position.z);
 
+    // keep other markers tied to status marker's pose
     if (feedback->marker_name == "status_marker") {
       InteractiveMarker estop_marker, fan_marker;
       server->get("estop_marker", estop_marker);
@@ -147,6 +154,7 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
   server->applyChanges();
 }
 
+/* Create an interactive text marker */
 void makeInteractiveText(int type) {
   InteractiveMarker int_marker;
   int_marker.header.frame_id = "base_link";
@@ -197,6 +205,7 @@ void makeInteractiveText(int type) {
   server->setCallback(int_marker.name, &processFeedback);
 }
 
+/* Callback to process status messages from client */
 void statusCallback(const lilred_msgs::Status &msg) {
   float status[14];
 
@@ -219,6 +228,8 @@ void statusCallback(const lilred_msgs::Status &msg) {
 
   status[13] = msg.estop_status;
 
+  // avoid a race condition -- trigger server estop if client's been triggered
+  // otherwise any differences are settled by making the client estop the same as the server
   if (!estop_status && status[13]) {
     if (!prev_server_estop && !prev_client_estop) {
       estop_status = true;
@@ -226,6 +237,7 @@ void statusCallback(const lilred_msgs::Status &msg) {
   }
   prev_client_estop = status[13];
 
+  // convert raw thermistor outputs to temps
   thermistor thermistor(resistances);
   thermistor.setResPullup(30000);
   thermistor.setVcc(5);
@@ -236,6 +248,7 @@ void statusCallback(const lilred_msgs::Status &msg) {
   status[2] = thermistor.voltageToTemp(status[2]);
   status[3] = thermistor.voltageToTemp(status[3]);
 
+  // update all the text with new data
   InteractiveMarker status_marker, estop_marker;
   server->get("status_marker", status_marker);
   server->get("estop_marker", estop_marker);
@@ -301,6 +314,7 @@ int main(int argc, char** argv) {
 
   server->applyChanges();
 
+  // start fan text with 0%
   InteractiveMarker fan_marker;
   server->get("fan_marker", fan_marker);
 
@@ -322,6 +336,7 @@ int main(int argc, char** argv) {
 
   server->applyChanges();
 
+  // publish the command message
   while (ros::ok()) {
     lilred_msgs::Command msg;
     msg.estop_status = estop_status;
