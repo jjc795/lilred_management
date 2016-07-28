@@ -7,6 +7,8 @@
 #include <string>
 #include <sstream>
 
+#include "thermistor.h"
+
 #define HZ 1
 
 #define STATUS_MARKER 0
@@ -31,7 +33,14 @@ std::string status_text[] = {"Temp 1: ",
                              "Fan Setting: ",
                              "ESTOP: "};
 
-//const float thermResponse
+float resistances[] = {526240, 384520, 284010, 211940, 159720, 121490, 93246, 72181, 56332,
+              44308, 35112, 28024, 22520, 18216, 14827, 12142, 10000, 8281.8, 6895.4,
+              5770.3, 4852.5, 4100, 3479.8, 2966.3, 2539.2, 2182.4, 1883, 1630.7,
+              1417.4, 1236.2, 1081.8, 949.73, 836.4, 738.81, 654.5, 581.44, 517.94,
+              462.59, 414.2, 371.79, 334.51, 301.66, 272.64, 246.94, 224.14, 203.85,
+              185.77, 169.61, 155.14, 142.16, 130.49, 119.99, 110.51, 101.94, 94.181,
+              87.144, 80.751, 74.933, 69.631, 64.791, 60.366, 56.316, 52.602, 49.193,
+              46.059, 43.173, 40.514, 38.06, 35.793, 33.696, 31.753, 29.952};
 
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
@@ -66,14 +75,6 @@ Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
   }
 
   return marker;
-}
-
-float voltageToTemp(float voltage) {
-  float resPullup = 30000; // pullup resistor value in ohms
-  float vcc = 5; // volts
-
-  float resTherm = resPullup * (voltage / (vcc - voltage)); // thermistor resistance in ohms
-//  return resToTemp(resTherm); // temperature in degree celsius
 }
 
 void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
@@ -224,6 +225,16 @@ void statusCallback(const lilred_msgs::Status &msg) {
     }
   }
   prev_client_estop = status[13];
+
+  thermistor thermistor(resistances);
+  thermistor.setResPullup = 30000;
+  thermistor.setVcc = 5;
+  thermistor.fillRtTable(-55, 300, 5);
+
+  status[0] = thermistor.voltageToTemp(status[0]);
+  status[1] = thermistor.voltageToTemp(status[1]);
+  status[2] = thermistor.voltageToTemp(status[2]);
+  status[3] = thermistor.voltageToTemp(status[3]);
 
   InteractiveMarker status_marker, estop_marker;
   server->get("status_marker", status_marker);
