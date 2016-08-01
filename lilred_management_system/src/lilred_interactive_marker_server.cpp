@@ -237,90 +237,90 @@ void updateText(visualization_msgs::Marker &marker, std::string text, int color)
 int findTextColor(float value, int text_id) {
   // temp data
   if (text_id >= 0 || text_id <= 3) {
-    if (value > 150.0)
+    if (value >= 150.0 || value < 0.0)
       return RED;
-    else if (value < 100.0)
+    else if (value <= 100.0 && value >= 0.0)
       return GREEN;
     else
       return YELLOW;
   }
   // 24V current
   else if (text_id == 4) {
-    if (value > 60.0)
+    if (value >= 60.0)
       return RED;
-    else if (value < 30.0)
+    else if (value <= 30.0)
       return GREEN;
     else
       return YELLOW;
   }
   // 24V bus voltage
   else if (text_id == 5) {
-    if (value < 23.0)
+    if (value <= 23.0 || value >= 30.0)
       return RED;
-    else if (value > 24.0)
+    else if (value >= 24.0 && value <= 27.0)
       return GREEN;
     else
       return YELLOW;
   }
   // 24V power
   else if (text_id == 6) {
-    if (value > 1440)
+    if (value >= 1440)
       return RED;
-    else if (value < 1000)
+    else if (value <= 1000)
       return GREEN;
     else
       return YELLOW;
   }
   // 12V current
   else if (text_id == 7) {
-    if (value > 5)
+    if (value >= 5)
       return RED;
-    else if (value < 3)
+    else if (value <= 3)
       return GREEN;
     else
       return YELLOW;
   }
   // 12V bus voltage
   else if (text_id == 8) {
-    if (value < 11.5)
+    if (value <= 11.5 || value >= 12.5)
       return RED;
-    else if (value > 12.0)
+    else if (value >= 11.8 && value <= 12.2)
       return GREEN;
     else
       return YELLOW;
   }
   // 12V power
   else if (text_id == 9) {
-    if (value > 60)
+    if (value >= 60)
       return RED;
-    else if (value < 35)
+    else if (value <= 35)
       return GREEN;
     else
       return YELLOW;
   }
   // 5V current
   else if (text_id == 10) {
-    if (value > 5)
+    if (value >= 5)
       return RED;
-    else if (value < 3)
+    else if (value <= 3)
       return GREEN;
     else
       return YELLOW;
   }
   // 5V bus voltage
   else if (text_id == 11) {
-    if (value < 4.5)
+    if (value <= 4.5 || value >= 5.5)
       return RED;
-    else if (value > 4.9)
+    else if (value >= 4.9 && value <= 5.1)
       return GREEN;
     else
       return YELLOW;
   }
   // 5V power
   else if (text_id == 12) {
-    if (value > 25)
+    if (value >= 25)
       return RED;
-    else if (value < 15)
+    else if (value <= 15)
       return GREEN;
     else
       return YELLOW;
