@@ -1,8 +1,6 @@
-/* Header file for thermistor related functionality */
-
 #include <vector>
 
-#define ERROR_VALUE 1000 // so we know when things are out of range
+#define ERROR_VALUE 1000
 
 class line {
 public:
@@ -17,7 +15,7 @@ private:
 
 class thermistor {
 public:
-	thermistor(float* resList);
+	thermistor(float resList[]);
 	void setResPullup(float value);
 	void setVcc(float value);
 	void fillRtTable(float lowTemp, float highTemp, float increment);
@@ -27,6 +25,7 @@ private:
 	float resPullup;
 	float vcc;
 	float* resValues;
+	std::size_t resListLen;
 	std::vector<line> rtLines;
 
 	line* rtLineSearch(float* key, float* base, std::size_t num, std::size_t size);
