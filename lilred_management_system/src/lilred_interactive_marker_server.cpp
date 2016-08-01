@@ -216,14 +216,17 @@ void updateText(visualization_msgs::Marker &marker, std::string text, int color)
     case GREEN:   marker.color.r = 0.0;
                   marker.color.g = 1.0;
                   marker.color.b = 0.0;
+                  break;
 
     case YELLOW:  marker.color.r = 0.5;
                   marker.color.g = 0.5;
                   marker.color.b = 0.0;
+                  break;
 
     case RED:     marker.color.r = 1.0;
                   marker.color.g = 0.0;
                   marker.color.b = 0.0;
+                  break;
   }
 }
 
@@ -305,7 +308,7 @@ int findTextColor(float value, int text_id) {
   else if (text_id == 11) {
     if (value < 4.5)
       return RED;
-    else if value > 4.9)
+    else if (value > 4.9)
       return GREEN;
     else
       return YELLOW;
