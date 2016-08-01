@@ -38,6 +38,9 @@ std::string status_text[] = {"Temp 1: ",
                              "Fan Setting: ",
                              "ESTOP: "};
 
+// units to use
+std::string status_units[] = {" C", " A", " V", " W"};
+
 // thermistor resistances ordered from lower to higher temps
 float resistances[] = {526240, 384520, 284010, 211940, 159720, 121490, 93246, 72181, 56332,
               44308, 35112, 28024, 22520, 18216, 14827, 12142, 10000, 8281.8, 6895.4,
@@ -380,8 +383,10 @@ void statusCallback(const lilred_msgs::Status &msg) {
 
     if (status[i] == ERROR_VALUE && i < 4)
       status_str[i] << "OUT OF RANGE";
+    else if (i < 4)
+      status_str[i] << status[i] << status_units[0];
     else
-      status_str[i] << status[i];
+      status_str[i] << status[i] << status_units[(i+2) % 3 + 1];
   }
 
   if (estop_status)
@@ -401,7 +406,6 @@ void statusCallback(const lilred_msgs::Status &msg) {
 
   for (int i = 0; i < 13; i++)
     updateText(text_markers[i], status_str[i].str(), findTextColor(status[i], i));
-    //text_markers[i].text = status_str[i].str();
 
   button_marker.text = estop_str.str();
 
