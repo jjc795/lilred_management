@@ -15,6 +15,10 @@
 #define ESTOP_MARKER  1
 #define FAN_MARKER    2
 
+#define YELLOW 3
+#define GREEN  4
+#define RED    5
+
 using namespace visualization_msgs;
 
 // the base text to display
@@ -54,7 +58,7 @@ uint8_t fan_settings[] = {0, 64, 128, 191, 255}; // approx 0%, 25%, 50%, 75%, 10
 uint8_t *fan_set = fan_settings; // default is 0%
 
 /* Creates basic text markers for interactive markers */
-Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
+Marker makeText(InteractiveMarker &msg, int text_id, bool isRed = false) {
   Marker marker;
 
   marker.type = Marker::TEXT_VIEW_FACING;
@@ -64,19 +68,18 @@ Marker makeText(InteractiveMarker &msg, int text_id, bool isButton = false) {
   marker.pose.position.y = msg.pose.position.y;
   marker.pose.position.z = msg.pose.position.z - marker.scale.z * 1.2 * text_id;
 
-  if (isButton) {
+  if (isRed) {
     marker.color.r = 1.0;
     marker.color.g = 0.0;
     marker.color.b = 0.0;
-    marker.color.a = 1.0;
   }
   else {
     marker.color.r = 0.5;
     marker.color.g = 0.5;
     marker.color.b = 0.5;
-    marker.color.a = 1.0;
   }
 
+  marker.color.a = 1.0;
   return marker;
 }
 
@@ -189,7 +192,7 @@ void makeInteractiveText(int type) {
                           break;
                         }
     case FAN_MARKER:    { int_marker.name = "fan_marker";
-                          Marker marker = makeText(int_marker, 13, true);
+                          Marker marker = makeText(int_marker, 13);
 
                           control.interaction_mode = InteractiveMarkerControl::BUTTON;
                           control.name = "text_button";
@@ -203,6 +206,119 @@ void makeInteractiveText(int type) {
 
   server->insert(int_marker);
   server->setCallback(int_marker.name, &processFeedback);
+}
+
+/* Update text markers to reflect new data */
+void updateText(visualization_msgs::Marker &marker, std::string text, int color) {
+  marker.text = text;
+
+  switch(color) {
+    case GREEN:   marker.color.r = 0.0;
+                  marker.color.g = 1.0;
+                  marker.color.b = 0.0;
+
+    case YELLOW:  marker.color.r = 0.5;
+                  marker.color.g = 0.5;
+                  marker.color.b = 0.0;
+
+    case RED:     marker.color.r = 1.0;
+                  marker.color.g = 0.0;
+                  marker.color.b = 0.0;
+  }
+}
+
+/* Determine which color to make the text based on pre-determined ranges */
+int findTextColor(float value, int text_id) {
+  // temp data
+  if (text_id >= 0 || text_id <= 3) {
+    if (value > 150.0)
+      return RED;
+    else if (value < 100.0)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 24V current
+  else if (text_id == 4) {
+    if (value > 60.0)
+      return RED;
+    else if (value < 30.0)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 24V bus voltage
+  else if (text_id == 5) {
+    if (value < 23.0)
+      return RED;
+    else if (value > 24.0)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 24V power
+  else if (text_id == 6) {
+    if (value > 1440)
+      return RED;
+    else if (value < 1000)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 12V current
+  else if (text_id == 7) {
+    if (value > 5)
+      return RED;
+    else if (value < 3)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 12V bus voltage
+  else if (text_id == 8) {
+    if (value < 11.5)
+      return RED;
+    else if (value > 12.0)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 12V power
+  else if (text_id == 9) {
+    if (value > 60)
+      return RED;
+    else if (value < 35)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 5V current
+  else if (text_id == 10) {
+    if (value > 5)
+      return RED;
+    else if (value < 3)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 5V bus voltage
+  else if (text_id == 11) {
+    if (value < 4.5)
+      return RED;
+    else if value > 4.9)
+      return GREEN;
+    else
+      return YELLOW;
+  }
+  // 5V power
+  else if (text_id == 12) {
+    if (value > 25)
+      return RED;
+    else if (value < 15)
+      return GREEN;
+    else
+      return YELLOW;
+  }
 }
 
 /* Callback to process status messages from client */
@@ -281,7 +397,8 @@ void statusCallback(const lilred_msgs::Status &msg) {
   button_control.markers.clear();
 
   for (int i = 0; i < 13; i++)
-    text_markers[i].text = status_str[i].str();
+    updateText(text_markers[i], status_str[i].str(), findTextColor(status[i], i));
+    //text_markers[i].text = status_str[i].str();
 
   button_marker.text = estop_str.str();
 
