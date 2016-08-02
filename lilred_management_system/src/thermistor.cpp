@@ -1,3 +1,11 @@
+/*
+ * thermistor.cpp
+ * Jon Cruz
+ *
+ * Processes raw voltage output of thermistor voltage
+ * divider into a temperature reading
+ */
+
 #include "lilred_management_system/thermistor.h"
 
 /* Make a line object using two points */
@@ -57,7 +65,7 @@ float thermistor::voltageToTemp(float voltage) {
 		return rtLine->getFuncValue(resTherm);
 }
 
-/* Searches through resistance list to find the appropriate line for a given resistance reading */
+/* Binary search through resistance list to find the appropriate line for a given resistance reading */
 line* thermistor::rtLineSearch(float* key, float* base, std::size_t num) {
 	std::size_t start = 0;
 	std::size_t end = num;

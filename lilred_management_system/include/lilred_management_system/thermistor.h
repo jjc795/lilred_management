@@ -1,3 +1,10 @@
+/*
+ * thermistor.h
+ * Jon Cruz
+ *
+ * Header for thermistor data processing
+ */
+
 #include <vector>
 
 #define ERROR_VALUE 1000

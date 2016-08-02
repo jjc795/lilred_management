@@ -1,8 +1,12 @@
 /*
+ * lilred_management_system_firmware.ino
  * Firmware for LilRed Management System
- * 
+ * Jon Cruz
+ *
  * Written assuming Uno Board
+ *
  * Note: if SRAM usage is high reduce publisher/subscriber buffer size in ros.h
+ * Used publisher and subscriber buffer size of 100 bytes
  */
 
 #include <Wire.h>
@@ -39,8 +43,9 @@ boolean estop_status = false;
 uint8_t fan_set = 0;
 unsigned long timePrevSub = 0;
 
+/* Callback for receiving command messages */
 void command_cb( const lilred_msgs::Command& command_msg) {
-  timePrevSub = millis();
+  timePrevSub = millis(); // time last message received
   estop_status = command_msg.estop_status;
   fan_set = command_msg.fan_ctrl;
 }
@@ -78,18 +83,18 @@ void setup() {
 
 void loop() {
   digitalWrite(estop_ctrl, estop_status); // change estop by msg
-  digitalWrite(led2_ctrl, estop_status); // indicator for estop -- may want pwm?
-  analogWrite(fan_ctrl, fan_set); // control fan
+  digitalWrite(led2_ctrl, estop_status);  // indicator for estop
+  analogWrite(fan_ctrl, fan_set);         // control fan
 
   if (millis() - timePrevSub < TIMEOUT) 
-    digitalWrite(led1_ctrl, HIGH); // indicator for ros working
+    digitalWrite(led1_ctrl, HIGH);        // indicator for ros working
   else {
-    digitalWrite(led1_ctrl, LOW); // ros not working
-    estop_status = true; // halt operation
+    digitalWrite(led1_ctrl, LOW);         // ros not working
+    estop_status = true;                  // halt operation
   }
   
   adc.config(CHANNEL_SEL_SINGLE_0);
-  status_msg.temp1 = adc.getData(); // need to write a function to convert voltage to temp -- do this on main computer?
+  status_msg.temp1 = adc.getData(); // Celsius
 
   adc.config(CHANNEL_SEL_SINGLE_1);
   status_msg.temp2 = adc.getData();

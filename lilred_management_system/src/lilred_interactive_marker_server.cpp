@@ -1,3 +1,11 @@
+/*
+ * lilred_interactive_marker_server.cpp
+ * Jon Cruz
+ *
+ * Creates an interactive marker server that displays
+ * data collected from LilRed's on-board management system
+ */
+
 #include <ros/ros.h>
 
 #include <interactive_markers/interactive_marker_server.h>
