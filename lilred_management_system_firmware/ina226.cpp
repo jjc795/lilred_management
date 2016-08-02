@@ -81,10 +81,10 @@ int16_t ina226::getPowerRaw(void) {
   return (int16_t)value;
 }
 
-/* Get bus voltage in mV */
+/* Get bus voltage in V */
 float ina226::getBusVoltage(void) {
   int16_t value = getBusVoltageRaw();
-  return value * busVoltageLSB;
+  return (value * busVoltageLSB) / 1000.0;
 }
 
 /* Get shunt voltage in uV */
@@ -93,15 +93,15 @@ float ina226::getShuntVoltage(void) {
   return value * shuntVoltageLSB;
 }
 
-/* Get current in mA */
+/* Get current in A */
 float ina226::getCurrent(void) {
   int16_t value = getCurrentRaw();
-  return value * currentLSB;
+  return (value * currentLSB) / 1000.0;
 }
 
-/* Get power in mW */
+/* Get power in W */
 float ina226::getPower(void) {
   int16_t value = getPowerRaw();
-  return value * powerLSB;
+  return (value * powerLSB) / 1000.0;
 }
 

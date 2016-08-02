@@ -13,7 +13,7 @@
 #include <lilred_msgs/Command.h>
 
 #define DELAY 1000
-#define TIMEOUT_NUM 3
+#define TIMEOUT 3000
 
 /* Device I2C Addresses */
 
@@ -37,12 +37,10 @@ const int alert_5 = A1;   // PC1
 
 boolean estop_status = false;
 uint8_t fan_set = 0;
-uint32_t prevSubNum = 0;
-uint32_t currentSubNum = 0;
+unsigned long timePrevSub = 0;
 
 void command_cb( const lilred_msgs::Command& command_msg) {
-  prevSubNum = currentSubNum;
-  currentSubNum = command_msg.header.seq;
+  timePrevSub = millis();
   estop_status = command_msg.estop_status;
   fan_set = command_msg.fan_ctrl;
 }
@@ -83,7 +81,7 @@ void loop() {
   digitalWrite(led2_ctrl, estop_status); // indicator for estop -- may want pwm?
   analogWrite(fan_ctrl, fan_set); // control fan
 
-  if (currentSubNum - prevSubNum < TIMEOUT_NUM) 
+  if (millis() - timePrevSub < TIMEOUT) 
     digitalWrite(led1_ctrl, HIGH); // indicator for ros working
   else {
     digitalWrite(led1_ctrl, LOW); // ros not working
@@ -102,17 +100,17 @@ void loop() {
   adc.config(CHANNEL_SEL_SINGLE_3);
   status_msg.temp4 = adc.getData();
 
-  status_msg.current_5 = monitor_5V.getCurrent();
-  status_msg.voltage_5 = monitor_5V.getBusVoltage();
-  status_msg.power_5 = monitor_5V.getPower();
+  status_msg.current_5 = monitor_5V.getCurrent();      // Amps
+  status_msg.voltage_5 = monitor_5V.getBusVoltage();   // Volts
+  status_msg.power_5 = monitor_5V.getPower();          // Watts
 
-  status_msg.current_12 = monitor_12V.getCurrent();
-  status_msg.voltage_12 = monitor_12V.getBusVoltage();
-  status_msg.power_12 = monitor_12V.getPower();
+  status_msg.current_12 = monitor_12V.getCurrent();    // Amps
+  status_msg.voltage_12 = monitor_12V.getBusVoltage(); // Volts
+  status_msg.power_12 = monitor_12V.getPower();        // Watts
 
-  status_msg.current_24 = monitor_24V.getCurrent();
-  status_msg.voltage_24 = monitor_24V.getBusVoltage();
-  status_msg.power_24 = monitor_24V.getPower();
+  status_msg.current_24 = monitor_24V.getCurrent();    // Amps
+  status_msg.voltage_24 = monitor_24V.getBusVoltage(); // Volts
+  status_msg.power_24 = monitor_24V.getPower();        // Watts
 
   status_msg.estop_status = estop_status;
 
