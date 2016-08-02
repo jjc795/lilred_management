@@ -51,6 +51,8 @@ float resistances[] = {526240, 384520, 284010, 211940, 159720, 121490, 93246, 72
               87.144, 80.751, 74.933, 69.631, 64.791, 60.366, 56.316, 52.602, 49.193,
               46.059, 43.173, 40.514, 38.06, 35.793, 33.696, 31.753, 29.952};
 
+int resListLen = 72; // sizeof(resistances) / sizeof(resistances[0])
+
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 bool estop_status = false; // default is not triggered
@@ -60,31 +62,13 @@ bool prev_client_estop = false;
 uint8_t fan_settings[] = {0, 64, 128, 191, 255}; // approx 0%, 25%, 50%, 75%, 100%
 uint8_t *fan_set = fan_settings; // default is 0%
 
-/* Creates basic text markers for interactive markers */
-Marker makeText(InteractiveMarker &msg, int text_id, bool isRed = false) {
-  Marker marker;
 
-  marker.type = Marker::TEXT_VIEW_FACING;
-  marker.scale.z = msg.scale * 0.45;
-  marker.text = status_text[text_id];
-  marker.pose.position.x = msg.pose.position.x;
-  marker.pose.position.y = msg.pose.position.y;
-  marker.pose.position.z = msg.pose.position.z - marker.scale.z * 1.2 * text_id;
+/* Function Prototypes */
+int findTextColor(float value, int text_id);
+void updateText(visualization_msgs::Marker &marker, std::string text, int color);
+Marker makeText(InteractiveMarker &msg, int text_id, bool isEstop = false);
+void makeInteractiveText(int type);
 
-  if (isRed) {
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
-  }
-  else {
-    marker.color.r = 0.5;
-    marker.color.g = 0.5;
-    marker.color.b = 0.5;
-  }
-
-  marker.color.a = 1.0;
-  return marker;
-}
 
 /* Callback for user feedback from rviz */
 void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
@@ -93,6 +77,7 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
 
     if (feedback->marker_name == "estop_marker")
       estop_status = !estop_status;
+
     // cycle through fan settings
     else if (feedback->marker_name == "fan_marker") {
       if (fan_set >= fan_settings + sizeof(fan_settings) - sizeof(fan_settings[0]))
@@ -156,11 +141,191 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
       server->insert(fan_marker);
     }
   }
-
   server->applyChanges();
 }
 
-/* Create an interactive text marker */
+
+/* Callback to process status messages from uC board */
+void statusCallback(const lilred_msgs::Status &msg) {
+  float status[14];
+
+  status[0] = msg.temp1;
+  status[1] = msg.temp2;
+  status[2] = msg.temp3;
+  status[3] = msg.temp4;
+
+  status[4] = msg.current_24;
+  status[5] = msg.voltage_24;
+  status[6] = msg.power_24;
+
+  status[7] = msg.current_12;
+  status[8] = msg.voltage_12;
+  status[9] = msg.power_12;
+
+  status[10] = msg.current_5;
+  status[11] = msg.voltage_5;
+  status[12] = msg.power_5;
+
+  status[13] = msg.estop_status;
+
+  // avoid a race condition -- trigger server estop if client's been triggered
+  // otherwise any differences are settled by making the client estop the same as the server
+  if (!estop_status && status[13]) {
+    if (!prev_server_estop && !prev_client_estop)
+      estop_status = true;
+  }
+  prev_client_estop = status[13];
+
+  // convert raw thermistor outputs to temps
+  thermistor thermistor(resistances, resListLen);
+  thermistor.setResPullup(30000);
+  thermistor.setVcc(5);
+  thermistor.fillRtTable(-55, 300, 5);
+
+  status[0] = thermistor.voltageToTemp(status[0]);
+  status[1] = thermistor.voltageToTemp(status[1]);
+  status[2] = thermistor.voltageToTemp(status[2]);
+  status[3] = thermistor.voltageToTemp(status[3]);
+
+  // update all the text with new data
+  InteractiveMarker status_marker, estop_marker;
+  server->get("status_marker", status_marker);
+  server->get("estop_marker", estop_marker);
+
+  std::ostringstream status_str[13];
+  std::ostringstream estop_str;
+
+  for (int i = 0; i < 13; i++) {
+    status_str[i] << status_text[i];
+
+    if (status[i] == ERROR_VALUE && i < 4)
+      status_str[i] << "OUT OF RANGE";
+    else if (i < 4)
+      status_str[i] << status[i] << status_units[0];
+    else
+      status_str[i] << status[i] << status_units[(i+2) % 3 + 1];
+  }
+
+  if (estop_status)
+    estop_str << status_text[14] << "ON";
+  else
+    estop_str << status_text[14] << "OFF";
+
+  InteractiveMarkerControl text_control =  status_marker.controls.back();
+  std::vector<Marker> text_markers = text_control.markers;
+  InteractiveMarkerControl button_control = estop_marker.controls.back();
+  Marker button_marker = button_control.markers.back();
+
+  status_marker.controls.clear();
+  text_control.markers.clear();
+  estop_marker.controls.clear();
+  button_control.markers.clear();
+
+  for (int i = 0; i < 13; i++)
+    updateText(text_markers[i], status_str[i].str(), findTextColor(status[i], i));
+
+  button_marker.text = estop_str.str();
+
+  text_control.markers = text_markers;
+  status_marker.controls.push_back(text_control);
+  button_control.markers.push_back(button_marker);
+  estop_marker.controls.push_back(button_control);
+
+  server->insert(status_marker);
+  server->insert(estop_marker);
+  server->applyChanges();
+}
+
+
+int main(int argc, char** argv) {
+  ros::init(argc, argv, "status_marker_server");
+
+  ros::NodeHandle nh;
+
+  ros::Subscriber status_sub = nh.subscribe("status", 1000, statusCallback);
+
+  ros::Publisher command_pub = nh.advertise<lilred_msgs::Command>("commands", 1000);
+
+  ros::Rate loop_rate(HZ);
+
+  server.reset(new interactive_markers::InteractiveMarkerServer("status_marker_server","",false));
+
+  makeInteractiveText(STATUS_MARKER);
+  makeInteractiveText(ESTOP_MARKER);
+  makeInteractiveText(FAN_MARKER);
+
+  server->applyChanges();
+
+  // start fan text with 0%
+  InteractiveMarker fan_marker;
+  server->get("fan_marker", fan_marker);
+
+  std::ostringstream fan_str;
+  fan_str << status_text[13] << "0%";
+
+  InteractiveMarkerControl button_control = fan_marker.controls.back();
+  Marker button_marker = button_control.markers.back();
+
+  fan_marker.controls.clear();
+  button_control.markers.clear();
+
+  button_marker.text = fan_str.str();
+
+  button_control.markers.push_back(button_marker);
+  fan_marker.controls.push_back(button_control);
+
+  server->insert(fan_marker);
+
+  server->applyChanges();
+
+  // publish the command message at specified rate
+  while (ros::ok()) {
+    lilred_msgs::Command msg;
+    msg.estop_status = estop_status;
+    msg.fan_ctrl = *fan_set;
+    msg.header.stamp = ros::Time::now();
+
+    command_pub.publish(msg);
+
+    prev_server_estop = estop_status;
+
+    ros::spinOnce();
+
+    loop_rate.sleep();
+  }
+
+  server.reset();
+}
+
+
+/* Creates basic text markers for interactive markers */
+Marker makeText(InteractiveMarker &msg, int text_id, bool isEstop = false) {
+  Marker marker;
+
+  marker.type = Marker::TEXT_VIEW_FACING;
+  marker.scale.z = msg.scale * 0.45;
+  marker.text = status_text[text_id];
+  marker.pose.position.x = msg.pose.position.x;
+  marker.pose.position.y = msg.pose.position.y;
+  marker.pose.position.z = msg.pose.position.z - marker.scale.z * 1.2 * text_id; // space them out vertically
+
+  if (isEstop) {
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+  }
+  else {
+    marker.color.r = 0.5;
+    marker.color.g = 0.5;
+    marker.color.b = 0.5;
+  }
+
+  marker.color.a = 1.0;
+  return marker;
+}
+
+
+/* Create an interactive text marker of the specified type */
 void makeInteractiveText(int type) {
   InteractiveMarker int_marker;
   int_marker.header.frame_id = "base_link";
@@ -174,7 +339,8 @@ void makeInteractiveText(int type) {
   InteractiveMarkerControl control;
 
   switch (type) {
-    case STATUS_MARKER: { int_marker.name = "status_marker";
+    case STATUS_MARKER: { // marker to display status data
+                          int_marker.name = "status_marker";
 
                           Marker marker[13];
                           for (int i = 0; i < 13; i++) {
@@ -186,7 +352,8 @@ void makeInteractiveText(int type) {
                           control.name = "move_3d"; 
                           break;
                         }
-    case ESTOP_MARKER:  { int_marker.name = "estop_marker";
+    case ESTOP_MARKER:  { // marker for estop interaction
+                          int_marker.name = "estop_marker";
                           Marker marker = makeText(int_marker, 14, true);
 
                           control.interaction_mode = InteractiveMarkerControl::BUTTON;
@@ -194,7 +361,8 @@ void makeInteractiveText(int type) {
                           control.markers.push_back(marker);
                           break;
                         }
-    case FAN_MARKER:    { int_marker.name = "fan_marker";
+    case FAN_MARKER:    { // marker for fan interaction
+                          int_marker.name = "fan_marker";
                           Marker marker = makeText(int_marker, 13);
 
                           control.interaction_mode = InteractiveMarkerControl::BUTTON;
@@ -203,7 +371,6 @@ void makeInteractiveText(int type) {
                           break;
                         }
   }
-
   control.always_visible = true;
   int_marker.controls.push_back(control);
 
@@ -211,7 +378,8 @@ void makeInteractiveText(int type) {
   server->setCallback(int_marker.name, &processFeedback);
 }
 
-/* Update text markers to reflect new data */
+
+/* Update text markers dynamically to reflect new data */
 void updateText(visualization_msgs::Marker &marker, std::string text, int color) {
   marker.text = text;
 
@@ -232,6 +400,7 @@ void updateText(visualization_msgs::Marker &marker, std::string text, int color)
                   break;
   }
 }
+
 
 /* Determine which color to make the text based on pre-determined ranges */
 int findTextColor(float value, int text_id) {
@@ -326,156 +495,3 @@ int findTextColor(float value, int text_id) {
       return YELLOW;
   }
 }
-
-/* Callback to process status messages from client */
-void statusCallback(const lilred_msgs::Status &msg) {
-  float status[14];
-
-  status[0] = msg.temp1;
-  status[1] = msg.temp2;
-  status[2] = msg.temp3;
-  status[3] = msg.temp4;
-
-  status[4] = msg.current_24;
-  status[5] = msg.voltage_24;
-  status[6] = msg.power_24;
-
-  status[7] = msg.current_12;
-  status[8] = msg.voltage_12;
-  status[9] = msg.power_12;
-
-  status[10] = msg.current_5;
-  status[11] = msg.voltage_5;
-  status[12] = msg.power_5;
-
-  status[13] = msg.estop_status;
-
-  // avoid a race condition -- trigger server estop if client's been triggered
-  // otherwise any differences are settled by making the client estop the same as the server
-  if (!estop_status && status[13]) {
-    if (!prev_server_estop && !prev_client_estop) {
-      estop_status = true;
-    }
-  }
-  prev_client_estop = status[13];
-
-  // convert raw thermistor outputs to temps
-  thermistor thermistor(resistances);
-  thermistor.setResPullup(30000);
-  thermistor.setVcc(5);
-  thermistor.fillRtTable(-55, 300, 5);
-
-  status[0] = thermistor.voltageToTemp(status[0]);
-  status[1] = thermistor.voltageToTemp(status[1]);
-  status[2] = thermistor.voltageToTemp(status[2]);
-  status[3] = thermistor.voltageToTemp(status[3]);
-
-  // update all the text with new data
-  InteractiveMarker status_marker, estop_marker;
-  server->get("status_marker", status_marker);
-  server->get("estop_marker", estop_marker);
-
-  std::ostringstream status_str[13];
-  std::ostringstream estop_str;
-
-  for (int i = 0; i < 13; i++) {
-    status_str[i] << status_text[i];
-
-    if (status[i] == ERROR_VALUE && i < 4)
-      status_str[i] << "OUT OF RANGE";
-    else if (i < 4)
-      status_str[i] << status[i] << status_units[0];
-    else
-      status_str[i] << status[i] << status_units[(i+2) % 3 + 1];
-  }
-
-  if (estop_status)
-    estop_str << status_text[14] << "ON";
-  else
-    estop_str << status_text[14] << "OFF";
-
-  InteractiveMarkerControl text_control =  status_marker.controls.back();
-  std::vector<Marker> text_markers = text_control.markers;
-  InteractiveMarkerControl button_control = estop_marker.controls.back();
-  Marker button_marker = button_control.markers.back();
-
-  status_marker.controls.clear();
-  text_control.markers.clear();
-  estop_marker.controls.clear();
-  button_control.markers.clear();
-
-  for (int i = 0; i < 13; i++)
-    updateText(text_markers[i], status_str[i].str(), findTextColor(status[i], i));
-
-  button_marker.text = estop_str.str();
-
-  text_control.markers = text_markers;
-  status_marker.controls.push_back(text_control);
-  button_control.markers.push_back(button_marker);
-  estop_marker.controls.push_back(button_control);
-
-  server->insert(status_marker);
-  server->insert(estop_marker);
-  server->applyChanges();
-}
-
-int main(int argc, char** argv) {
-  ros::init(argc, argv, "status_marker_server");
-
-  ros::NodeHandle nh;
-
-  ros::Subscriber status_sub = nh.subscribe("status", 1000, statusCallback);
-
-  ros::Publisher command_pub = nh.advertise<lilred_msgs::Command>("commands", 1000);
-
-  ros::Rate loop_rate(HZ);
-
-  server.reset(new interactive_markers::InteractiveMarkerServer("status_marker_server","",false));
-
-  makeInteractiveText(STATUS_MARKER);
-  makeInteractiveText(ESTOP_MARKER);
-  makeInteractiveText(FAN_MARKER);
-
-  server->applyChanges();
-
-  // start fan text with 0%
-  InteractiveMarker fan_marker;
-  server->get("fan_marker", fan_marker);
-
-  std::ostringstream fan_str;
-  fan_str << status_text[13] << "0%";
-
-  InteractiveMarkerControl button_control = fan_marker.controls.back();
-  Marker button_marker = button_control.markers.back();
-
-  fan_marker.controls.clear();
-  button_control.markers.clear();
-
-  button_marker.text = fan_str.str();
-
-  button_control.markers.push_back(button_marker);
-  fan_marker.controls.push_back(button_control);
-
-  server->insert(fan_marker);
-
-  server->applyChanges();
-
-  // publish the command message
-  while (ros::ok()) {
-    lilred_msgs::Command msg;
-    msg.estop_status = estop_status;
-    msg.fan_ctrl = *fan_set;
-    msg.header.stamp = ros::Time::now();
-
-    command_pub.publish(msg);
-
-    prev_server_estop = estop_status;
-
-    ros::spinOnce();
-
-    loop_rate.sleep();
-  }
-
-  server.reset();
-}
-

@@ -15,7 +15,7 @@ private:
 
 class thermistor {
 public:
-	thermistor(float resList[]);
+	thermistor(float resList[], std::size_t listLen);
 	void setResPullup(float value);
 	void setVcc(float value);
 	void fillRtTable(float lowTemp, float highTemp, float increment);
@@ -28,5 +28,5 @@ private:
 	std::size_t resListLen;
 	std::vector<line> rtLines;
 
-	line* rtLineSearch(float* key, float* base, std::size_t num, std::size_t size);
+	line* rtLineSearch(float* key, float* base, std::size_t num);
 };

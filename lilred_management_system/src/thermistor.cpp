@@ -1,36 +1,39 @@
-#include <ros/ros.h>
 #include "lilred_management_system/thermistor.h"
 
+/* Make a line object using two points */
 line::line(float point1_x, float point1_y, float point2_x, float point2_y) {
 	slope = (point2_y - point1_y) / (point2_x - point1_x);
 	point_x = point2_x;
 	point_y = point2_y;
 }
 
+/* For a given x, get the y value */
 float line::getFuncValue(float x) {
 	return slope * (x - point_x) + point_y;
 }
 
 
-thermistor::thermistor(float resList[]) {
+/* Make a thermistor object from a resistance list and its length */
+thermistor::thermistor(float resList[], std::size_t listLen) {
 	resPullup = 0;
 	vcc = 0;
 	resValues = resList;
-	//resListLen = sizeof(resList)/sizeof(resList[0]);
-	resListLen = (std::size_t)72;
+	resListLen = listLen;
 }
 
+/* Set pullup resistor value in ohms */
 void thermistor::setResPullup(float value) {
 	resPullup = value;
 }
 
+/* Set VCC value in volts */
 void thermistor::setVcc(float value) {
 	vcc = value;
 }
 
+/* Create a set of lines that interpolate between the resistance list's points */
+/* Needs list of temperatures that correspond to the resistances               */
 void thermistor::fillRtTable(float lowTemp, float highTemp, float increment) {
-	//int listLen = sizeof(resValues) / sizeof(resValues[0]);
-
 	float prevResNum = 0;
 	float prevTemp = lowTemp;
 
@@ -43,43 +46,44 @@ void thermistor::fillRtTable(float lowTemp, float highTemp, float increment) {
 	}
 }
 
+/* Takes thermistor voltage divider reading and determines the temperature */
 float thermistor::voltageToTemp(float voltage) {
 	float resTherm = resPullup * (voltage / (vcc - voltage)); // thermistor resistance in ohms
-	line* rtLine = rtLineSearch(&resTherm, resValues, resListLen, sizeof(resValues[0]));
+	line* rtLine = rtLineSearch(&resTherm, resValues, resListLen);
 
 	if (rtLine == 0)
-		return ERROR_VALUE;
+		return ERROR_VALUE; // out of range
 	else
 		return rtLine->getFuncValue(resTherm);
 }
 
-/* Used on resistance list to determine interval that matches with proper RT line */
-line* thermistor::rtLineSearch(float* key, float* base, std::size_t num, std::size_t size) {
+/* Searches through resistance list to find the appropriate line for a given resistance reading */
+line* thermistor::rtLineSearch(float* key, float* base, std::size_t num) {
 	std::size_t start = 0;
 	std::size_t end = num;
 
+	// out of range
 	if (*key > *base || *key < *(base + end))
 		return 0;
 
+	// binary search
 	while (start < end) {
 		std::size_t mid = start + (end - start) / 2;
 		float* toCompare = base + mid;
-		ROS_INFO_STREAM(start << " " <<  end << " " << mid);
 
 		if (*key > *toCompare) {
-			if (*key < *(toCompare - 1)) {
+			if (*key < *(toCompare - 1))
 				return &rtLines[mid-1];
-			}
+
 			end = mid;
 		}
 		else if (*key < *toCompare) {
-			if (*key > *(toCompare + 1)) {
+			if (*key > *(toCompare + 1))
 				return &rtLines[mid];
-			}
+
 			start = mid;
 		}
-		else {
+		else
 			return &rtLines[mid];
-		}
 	}
 }
