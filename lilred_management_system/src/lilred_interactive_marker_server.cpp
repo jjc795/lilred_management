@@ -299,7 +299,7 @@ int main(int argc, char** argv) {
 
 
 /* Creates basic text markers for interactive markers */
-Marker makeText(InteractiveMarker &msg, int text_id, bool isEstop = false) {
+Marker makeText(InteractiveMarker &msg, int text_id, bool isEstop) {
   Marker marker;
 
   marker.type = Marker::TEXT_VIEW_FACING;
