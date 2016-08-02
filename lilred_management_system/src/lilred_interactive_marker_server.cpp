@@ -183,6 +183,7 @@ void statusCallback(const lilred_msgs::Status &msg) {
       estop_status = true;
   }
   prev_client_estop = status[13];
+  prev_server_estop = estop_status;
 
   // convert raw thermistor outputs to temps
   thermistor thermistor(resistances, resListLen);
@@ -295,7 +296,7 @@ int main(int argc, char** argv) {
 
     command_pub.publish(msg);
 
-    prev_server_estop = estop_status;
+    //prev_server_estop = estop_status;
 
     ros::spinOnce();
 
