@@ -38,6 +38,7 @@ const int led2_ctrl = 9;  // PB1
 const int alert_24 = 2;   // PD2
 const int alert_12 = 4;   // PD4
 const int alert_5 = A1;   // PC1
+const int estop_mont = 3; // PD3
 
 boolean estop_status = false;
 uint8_t fan_set = 0;
@@ -46,8 +47,15 @@ unsigned long timePrevSub = 0;
 /* Callback for receiving command messages */
 void command_cb( const lilred_msgs::Command& command_msg) {
   timePrevSub = millis(); // time last message received
-  estop_status = command_msg.estop_status;
-  fan_set = command_msg.fan_ctrl;
+  fan_set = command_msg.fan_set;
+  boolean estop_command = command_msg.estop_command;
+
+  digitalWrite(estop_ctrl, estop_command); // change estop by msg
+  
+  if (digitalRead(estop_mont))
+    estop_status = estop_command;
+  else if (!digitalRead(estop_mont))
+    estop_status = true;
 }
 
 ros::Subscriber<lilred_msgs::Command> command_sub("commands", &command_cb);
@@ -79,10 +87,10 @@ void setup() {
   pinMode(alert_24, INPUT);
   pinMode(alert_12, INPUT);
   pinMode(alert_5, INPUT);
+  pinMode(estop_mont, INPUT);
 }
 
 void loop() {
-  digitalWrite(estop_ctrl, estop_status); // change estop by msg
   digitalWrite(led2_ctrl, estop_status);  // indicator for estop
   analogWrite(fan_ctrl, fan_set);         // control fan
 

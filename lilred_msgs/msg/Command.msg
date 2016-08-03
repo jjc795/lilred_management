@@ -1,3 +1,3 @@
 Header header
-bool estop_status
-uint8 fan_ctrl
+bool estop_command
+uint8 fan_set

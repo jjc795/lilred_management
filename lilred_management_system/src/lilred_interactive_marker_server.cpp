@@ -64,6 +64,7 @@ int resListLen = 72; // sizeof(resistances) / sizeof(resistances[0])
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 bool estop_status = false; // default is not triggered
+bool estop_command = false;
 bool prev_server_estop = false;
 bool prev_client_estop = false;
 
@@ -84,7 +85,7 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
     ROS_INFO_STREAM(feedback->marker_name << " has been clicked");
 
     if (feedback->marker_name == "estop_marker")
-      estop_status = !estop_status;
+      estop_command = !estop_status;
 
     // cycle through fan settings
     else if (feedback->marker_name == "fan_marker") {
@@ -175,15 +176,16 @@ void statusCallback(const lilred_msgs::Status &msg) {
   status[12] = msg.power_5;
 
   status[13] = msg.estop_status;
+  estop_status = status[13];
 
   // avoid a race condition -- trigger server estop if client's been triggered
   // otherwise any differences are settled by making the client estop the same as the server
-  if (!estop_status && status[13]) {
-    if (!prev_server_estop && !prev_client_estop)
-      estop_status = true;
-  }
-  prev_client_estop = status[13];
-  prev_server_estop = estop_status;
+  //if (!estop_status && status[13]) {
+  //  if (!prev_server_estop && !prev_client_estop)
+  //    estop_status = true;
+  //}
+  //prev_client_estop = status[13];
+  //prev_server_estop = estop_status;
 
   // convert raw thermistor outputs to temps
   thermistor thermistor(resistances, resListLen);
@@ -290,8 +292,8 @@ int main(int argc, char** argv) {
   // publish the command message at specified rate
   while (ros::ok()) {
     lilred_msgs::Command msg;
-    msg.estop_status = estop_status;
-    msg.fan_ctrl = *fan_set;
+    msg.estop_command = estop_command;
+    msg.fan_set = *fan_set;
     msg.header.stamp = ros::Time::now();
 
     command_pub.publish(msg);
