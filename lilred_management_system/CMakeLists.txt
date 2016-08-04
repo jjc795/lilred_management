@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   interactive_markers
   roslaunch
+  dynamic_reconfigure
 )
 
 roslaunch_add_file_check(launch)
@@ -90,10 +91,9 @@ roslaunch_add_file_check(launch)
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/lilred.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -129,7 +129,7 @@ include_directories(
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(lilred_management_system ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(lilred_management_system ${PROJECT_NAME}_gencfg)
 
 ## Declare a C++ executable
 add_executable(lilred_management_system 

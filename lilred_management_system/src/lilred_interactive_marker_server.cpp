@@ -12,6 +12,9 @@
 #include <lilred_msgs/Status.h>
 #include <lilred_msgs/Command.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <lilred_management_system/lilredConfig.h>
+
 #include <string>
 #include <sstream>
 
@@ -236,9 +239,18 @@ void statusCallback(const lilred_msgs::Status &msg) {
   server->applyChanges();
 }
 
+void cfgCallback(lilred_management_system::lilredConfig &config, uint32_t level) {
+  ROS_INFO_STREAM("test " << config.mode);
+}
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "status_marker_server");
+
+  dynamic_reconfigure::Server<lilred_management_system::lilredConfig> cfgServer;
+  dynamic_reconfigure::Server<lilred_management_system::lilredConfig>::CallbackType f;
+
+  f = boost::bind(&cfgCallback, _1, _2);
+  cfgServer.setCallback(f);
 
   ros::NodeHandle nh;
 
