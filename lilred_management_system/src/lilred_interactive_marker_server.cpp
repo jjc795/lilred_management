@@ -178,9 +178,9 @@ void statusCallback(const lilred_msgs::Status &msg) {
 
   // convert raw thermistor outputs to temps
   thermistor thermistor(resistances, resListLen);
-  thermistor.setResPullup(30000);
-  thermistor.setVcc(5);
-  thermistor.fillRtTable(-55, 300, 5);
+  thermistor.setResPullup(30000); // 30k pullup
+  thermistor.setVcc(5); // 5 volts
+  thermistor.fillRtTable(-55, 300, 5); // -55 to 300 celsius, increments of 5
 
   status[0] = thermistor.voltageToTemp(status[0]);
   status[1] = thermistor.voltageToTemp(status[1]);
@@ -247,8 +247,6 @@ int main(int argc, char** argv) {
   ros::Publisher command_pub = nh.advertise<lilred_msgs::Command>("commands", 1000);
 
   ros::Rate loop_rate(HZ);
-
-  ROS_INFO_STREAM(resListLen);
 
   server.reset(new interactive_markers::InteractiveMarkerServer("status_marker_server","",false));
 
