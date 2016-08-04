@@ -63,8 +63,8 @@ int resListLen = 72; // sizeof(resistances) / sizeof(resistances[0])
 
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
-bool estop_status = false; // default is not triggered
-bool estop_command = false;
+bool estop_status;
+bool estop_command;
 
 uint8_t fan_settings[] = {0, 64, 128, 191, 255}; // approx 0%, 25%, 50%, 75%, 100%
 uint8_t *fan_set = fan_settings; // default is 0%

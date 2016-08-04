@@ -16,6 +16,7 @@
 #include <lilred_msgs/Status.h>
 #include <lilred_msgs/Command.h>
 
+#define BAUD 57600
 #define DELAY 1000
 #define TIMEOUT 3000
 
@@ -69,6 +70,7 @@ ina226 monitor_24V(BUS_24V_ADDR);
 ads7828 adc(ADC_ADDR, 0, 5);
 
 void setup() {
+  nh.getHardware()->setBaud(BAUD);
   nh.initNode();
   nh.subscribe(command_sub);
   nh.advertise(status_pub);

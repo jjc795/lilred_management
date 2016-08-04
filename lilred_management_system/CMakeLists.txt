@@ -7,11 +7,13 @@ project(lilred_management_system)
 find_package(catkin REQUIRED COMPONENTS
   lilred_msgs
   roscpp
-  rospy
   std_msgs
   visualization_msgs
   interactive_markers
+  roslaunch
 )
+
+roslaunch_add_file_check(launch)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -105,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES lilred_management_system
-  CATKIN_DEPENDS lilred_msgs roscpp rospy std_msgs visualization_msgs
+  CATKIN_DEPENDS lilred_msgs roscpp std_msgs visualization_msgs
   DEPENDS system_lib
 )
 
