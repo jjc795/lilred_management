@@ -1,0 +1,10 @@
+<launch>
+  <node pkg="rosserial_python" type="serial_node.py" name="serial_node">
+    <param name="port" value="/dev/ttyUSB0"/>
+    <param name="baud" value="57600"/>
+  </node>
+  <node pkg="lilred_management_system" type="lilred_management_system" name="lilred_management_system"/>
+  <node pkg="rviz" type="rviz" name="rviz">
+    <param name="d" value="~/.rviz/lilred_manage.rviz"/>
+  </node>
+</launch>
