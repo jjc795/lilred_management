@@ -59,7 +59,7 @@ float resistances[] = {526240, 384520, 284010, 211940, 159720, 121490, 93246, 72
               87.144, 80.751, 74.933, 69.631, 64.791, 60.366, 56.316, 52.602, 49.193,
               46.059, 43.173, 40.514, 38.06, 35.793, 33.696, 31.753, 29.952};
 
-int resListLen = 72; // sizeof(resistances) / sizeof(resistances[0])
+int resListLen = sizeof(resistances) / sizeof(resistances[0]);
 
 boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
@@ -247,6 +247,8 @@ int main(int argc, char** argv) {
   ros::Publisher command_pub = nh.advertise<lilred_msgs::Command>("commands", 1000);
 
   ros::Rate loop_rate(HZ);
+
+  ROS_INFO_STREAM(resListLen);
 
   server.reset(new interactive_markers::InteractiveMarkerServer("status_marker_server","",false));
 
