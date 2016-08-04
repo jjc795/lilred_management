@@ -5,6 +5,6 @@
   </node>
   <node pkg="lilred_management_system" type="lilred_management_system" name="lilred_management_system"/>
   <node pkg="rviz" type="rviz" name="rviz">
-    <param name="d" value="~/.rviz/lilred_manage.rviz"/>
+    <param name="d" value="lilred_manage.rviz"/>
   </node>
 </launch>
