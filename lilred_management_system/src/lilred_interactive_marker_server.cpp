@@ -65,8 +65,6 @@ boost::shared_ptr<interactive_markers::InteractiveMarkerServer> server;
 
 bool estop_status = false; // default is not triggered
 bool estop_command = false;
-bool prev_server_estop = false;
-bool prev_client_estop = false;
 
 uint8_t fan_settings[] = {0, 64, 128, 191, 255}; // approx 0%, 25%, 50%, 75%, 100%
 uint8_t *fan_set = fan_settings; // default is 0%
@@ -178,15 +176,6 @@ void statusCallback(const lilred_msgs::Status &msg) {
   status[13] = msg.estop_status;
   estop_status = status[13];
 
-  // avoid a race condition -- trigger server estop if client's been triggered
-  // otherwise any differences are settled by making the client estop the same as the server
-  //if (!estop_status && status[13]) {
-  //  if (!prev_server_estop && !prev_client_estop)
-  //    estop_status = true;
-  //}
-  //prev_client_estop = status[13];
-  //prev_server_estop = estop_status;
-
   // convert raw thermistor outputs to temps
   thermistor thermistor(resistances, resListLen);
   thermistor.setResPullup(30000);
@@ -297,8 +286,6 @@ int main(int argc, char** argv) {
     msg.header.stamp = ros::Time::now();
 
     command_pub.publish(msg);
-
-    //prev_server_estop = estop_status;
 
     ros::spinOnce();
 
