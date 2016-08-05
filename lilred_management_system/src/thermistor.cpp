@@ -50,7 +50,7 @@ float thermistor::cToF(float temp) {
 /* Convert Fahrenheit to Celsius */
 float thermistor::fToC(float temp) {
 	if (temp == ERROR_VALUE)
-		return ERROR_VALUE
+		return ERROR_VALUE;
 
 	return (temp - 32.0) * 5.0 / 9.0;
 }
