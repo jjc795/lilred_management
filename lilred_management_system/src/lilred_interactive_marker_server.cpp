@@ -76,8 +76,8 @@ int mode = ALL; // default mode
 uint8_t fan_settings[] = {0, 64, 128, 191, 255}; // approx 0%, 25%, 50%, 75%, 100%
 uint8_t *fan_set = fan_settings; // default is 0%
 
-float 24V_voltageLowerLim = 23.0;
-float 24V_voltageUpperLim = 30.0;
+float voltageLowerLim_24V = 23.0;
+float voltageUpperLim_24V = 30.0;
 
 
 /* Function Prototypes */
@@ -262,11 +262,11 @@ void statusCallback(const lilred_msgs::Status &msg) {
 }
 
 void cfgCallback(lilred_management_system::lilredConfig &config, uint32_t level) {
-  24V_voltageLowerLim = config.24V_BusVoltageLowerLim;
-  24V_voltageUpperLim = config.24V_BusVoltageUpperLim;
+  voltageLowerLim_24V = config.BusVoltageLowerLim_24V;
+  voltageUpperLim_24V = config.BusVoltageUpperLim_24V;
   mode = config.Mode;
 
-  ROS_INFO_STREAM("Mode changed to " << mode << " , 24V Bus Voltage Limits: " << 24V_voltageLowerLim << ", " << 24V_voltageUpperLim);
+  ROS_INFO_STREAM("Mode changed to " << mode << " , 24V Bus Voltage Limits: " << voltageLowerLim_24V << ", " << voltageUpperLim_24V);
 
   server->clear();
   server->applyChanges();
@@ -485,9 +485,9 @@ int findTextColor(float value, int text_id) {
   }
   // 24V bus voltage
   else if (text_id == 5) {
-    if (value <= 24V_voltageLowerLim || value >= 24V_voltageUpperLim)
+    if (value <= voltageLowerLim_24V || value >= voltageUpperLim_24V)
       return RED;
-    else if (value >= 24V_voltageLowerLim + 1 && value <= 24V_voltageUpperLim - 1)
+    else if (value >= voltageLowerLim_24V + 1 && value <= voltageUpperLim_24V - 1)
       return GREEN;
     else
       return YELLOW;

@@ -107,7 +107,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES lilred_management_system
-  CATKIN_DEPENDS lilred_msgs roscpp std_msgs visualization_msgs
+  CATKIN_DEPENDS lilred_msgs roscpp std_msgs visualization_msgs interactive_markers roslaunch dynamic_reconfigure
   DEPENDS system_lib
 )
 
@@ -139,7 +139,7 @@ add_executable(lilred_management_system
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(lilred_management_system_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(lilred_management_system ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(lilred_management_system

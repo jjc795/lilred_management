@@ -42,14 +42,19 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>lilred_msgs</build_depend>
   <build_depend>roscpp</build_depend>
-  <build_depend>rospy</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>visualization_msgs</build_depend>
+  <build_depend>interactive_markers</build_depend>
+  <build_depend>roslaunch</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
+
   <run_depend>lilred_msgs</run_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>visualization_msgs</run_depend>
+  <run_depend>interactive_markers</run_depend>
+  <run_depend>roslaunch</run_depend>
+  <run_depend>dynamic_reconfigure</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
