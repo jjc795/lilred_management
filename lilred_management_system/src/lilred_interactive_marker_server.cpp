@@ -250,16 +250,10 @@ void statusCallback(const lilred_msgs::Status &msg) {
     fan_control.markers.clear();
 
     text_markers.clear();
-    Marker marker = makeText(status_marker, 5, 0);
-    updateText(marker, status_str[5].str(), findTextColor(status[5], 5));
-    text_markers.push_back(marker);
-    int placement_id = 1;
+    int placement_id = 0;
 
     for (int i = 0; i < 13; i++) {
-      if (i == 5)
-        continue;
-
-      if (findTextColor(status[i], i) != GREEN) {
+      if (findTextColor(status[i], i) != GREEN || i == 5) {
         Marker marker = makeText(status_marker, i, placement_id);
         updateText(marker, status_str[i].str(), findTextColor(status[i], i));
         text_markers.push_back(marker);
@@ -446,12 +440,12 @@ void makeInteractiveText(int type) {
                             }
                           }
                           else if (mode == MINIMAL) {
-                            Marker marker = makeText(int_marker, 5, 2);
+                            Marker marker = makeText(int_marker, 5, 0);
                             control.markers.push_back(marker);
                           }
 
                           control.interaction_mode = InteractiveMarkerControl::MOVE_ROTATE_3D;
-                          control.name = "move_3d"; 
+                          control.name = "move_3d";
                           break;
                         }
     case ESTOP_MARKER:  { // marker for estop interaction
@@ -460,7 +454,7 @@ void makeInteractiveText(int type) {
 			  if (mode == ALL)
                             marker = makeText(int_marker, 14, 14, true);
 			  else if (mode == MINIMAL)
-			    marker = makeText(int_marker, 14, 1, true);
+			    marker = makeText(int_marker, 14, 2, true);
 
                           control.interaction_mode = InteractiveMarkerControl::BUTTON;
                           control.name = "text_button";
@@ -473,7 +467,7 @@ void makeInteractiveText(int type) {
 			  if (mode == ALL)
 			    marker = makeText(int_marker, 13, 13);
 			  else if (mode == MINIMAL)
-                            marker = makeText(int_marker, 13, 0);
+                            marker = makeText(int_marker, 13, 1);
 
                           control.interaction_mode = InteractiveMarkerControl::BUTTON;
                           control.name = "text_button";
@@ -494,20 +488,21 @@ void updateText(visualization_msgs::Marker &marker, std::string text, int color)
   marker.text = text;
 
   switch(color) {
-    case GREEN:   marker.color.r = 0.0;
-                  marker.color.g = 1.0;
-                  marker.color.b = 0.0;
-                  break;
-
-    case YELLOW:  marker.color.r = 0.5;
-                  marker.color.g = 0.5;
-                  marker.color.b = 0.0;
-                  break;
-
-    case RED:     marker.color.r = 1.0;
-                  marker.color.g = 0.0;
-                  marker.color.b = 0.0;
-                  break;
+    case GREEN:  { marker.color.r = 0.0;
+                   marker.color.g = 1.0;
+                   marker.color.b = 0.0;
+                   break;
+		 }
+    case YELLOW: { marker.color.r = 0.5;
+                   marker.color.g = 0.5;
+                   marker.color.b = 0.0;
+                   break;
+		 }
+    case RED:    { marker.color.r = 1.0;
+                   marker.color.g = 0.0;
+                   marker.color.b = 0.0;
+                   break;
+		 }
   }
 }
 
@@ -515,7 +510,7 @@ void updateText(visualization_msgs::Marker &marker, std::string text, int color)
 /* Determine which color to make the text based on pre-determined ranges */
 int findTextColor(float value, int text_id) {
   // temp data
-  if (text_id >= 0 || text_id <= 3) {
+  if (text_id >= 0 && text_id <= 3) {
     if (value >= tempUpperLim || value < tempLowerLim)
       return RED;
     else if (value <= tempUpperLim - 90  && value >= tempLowerLim + 35)
@@ -525,7 +520,7 @@ int findTextColor(float value, int text_id) {
   }
   // 24V current
   else if (text_id == 4) {
-    if (value >= currentUpperLim_24V)
+    if (value >= currentUpperLim_24V || value < 0)
       return RED;
     else if (value <= currentLowerLim_24V)
       return GREEN;
@@ -543,7 +538,7 @@ int findTextColor(float value, int text_id) {
   }
   // 24V power
   else if (text_id == 6) {
-    if (value >= powerUpperLim_24V)
+    if (value >= powerUpperLim_24V || value < 0)
       return RED;
     else if (value <= powerLowerLim_24V)
       return GREEN;
@@ -552,7 +547,7 @@ int findTextColor(float value, int text_id) {
   }
   // 12V current
   else if (text_id == 7) {
-    if (value >= currentUpperLim_12V)
+    if (value >= currentUpperLim_12V || value < 0)
       return RED;
     else if (value <= currentLowerLim_12V)
       return GREEN;
@@ -570,7 +565,7 @@ int findTextColor(float value, int text_id) {
   }
   // 12V power
   else if (text_id == 9) {
-    if (value >= powerUpperLim_12V)
+    if (value >= powerUpperLim_12V || value < 0)
       return RED;
     else if (value <= powerLowerLim_12V)
       return GREEN;
@@ -579,7 +574,7 @@ int findTextColor(float value, int text_id) {
   }
   // 5V current
   else if (text_id == 10) {
-    if (value >= currentUpperLim_5V)
+    if (value >= currentUpperLim_5V || value < 0)
       return RED;
     else if (value <= currentLowerLim_5V)
       return GREEN;
@@ -597,7 +592,7 @@ int findTextColor(float value, int text_id) {
   }
   // 5V power
   else if (text_id == 12) {
-    if (value >= powerUpperLim_5V)
+    if (value >= powerUpperLim_5V || value < 0)
       return RED;
     else if (value <= powerLowerLim_5V)
       return GREEN;
