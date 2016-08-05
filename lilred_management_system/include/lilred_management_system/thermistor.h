@@ -27,6 +27,8 @@ public:
 	void setVcc(float value);
 	void fillRtTable(float lowTemp, float highTemp, float increment);
 	float voltageToTemp(float voltage);
+	float cToF(float temp);
+	float fToC(float temp);
 
 private:
 	float resPullup;

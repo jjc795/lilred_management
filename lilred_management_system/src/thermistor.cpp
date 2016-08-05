@@ -39,6 +39,22 @@ void thermistor::setVcc(float value) {
 	vcc = value;
 }
 
+/* Convert Celsisus to Fahrenheit */
+float thermistor::cToF(float temp) {
+	if (temp == ERROR_VALUE)
+		return ERROR_VALUE;
+
+	return (temp * 9.0) / 5.0 + 32.0;
+}
+
+/* Convert Fahrenheit to Celsius */
+float thermistor::fToC(float temp) {
+	if (temp == ERROR_VALUE)
+		return ERROR_VALUE
+
+	return (temp - 32.0) * 5.0 / 9.0;
+}
+
 /* Create a set of lines that interpolate between the resistance list's points */
 /* Needs list of temperatures that correspond to the resistances               */
 void thermistor::fillRtTable(float lowTemp, float highTemp, float increment) {
@@ -62,7 +78,7 @@ float thermistor::voltageToTemp(float voltage) {
 	if (rtLine == 0)
 		return ERROR_VALUE; // out of range
 	else
-		return rtLine->getFuncValue(resTherm);
+		return cToF(rtLine->getFuncValue(resTherm)); // give temp in F
 }
 
 /* Binary search through resistance list to find the appropriate line for a given resistance reading */

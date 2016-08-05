@@ -53,7 +53,7 @@ std::string status_text[] = {"Temp 1: ",
                              "ESTOP: "};
 
 // units to use
-std::string status_units[] = {" C", " A", " V", " W"};
+std::string status_units[] = {" F", " A", " V", " W"};
 
 // thermistor resistances ordered from lower to higher temps
 float resistances[] = {526240, 384520, 284010, 211940, 159720, 121490, 93246, 72181, 56332,
