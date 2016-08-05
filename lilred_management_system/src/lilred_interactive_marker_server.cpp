@@ -135,7 +135,7 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
 
         for (int i = 0; i < text_markers.size(); i++) {
           text_markers[i].pose = feedback->pose;
-	  text_markers[i].pose.position.z -= text_markers[i].scale.z * 1.2 * (i + 2);
+	        text_markers[i].pose.position.z -= text_markers[i].scale.z * 1.2 * (i + 2);
         }
 
         text_control.markers = text_markers;
@@ -267,6 +267,8 @@ void statusCallback(const lilred_msgs::Status &msg) {
   server->applyChanges();
 }
 
+
+/* Callback for dynamic reconfigure changes */
 void cfgCallback(lilred_management_system::lilredConfig &config, uint32_t level) {
   voltageLowerLim_24V = config.BusVoltageLowerLim_24V;
   voltageUpperLim_24V = config.BusVoltageUpperLim_24V;
