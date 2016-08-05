@@ -78,6 +78,24 @@ uint8_t *fan_set = fan_settings; // default is 0%
 
 float voltageLowerLim_24V = 23.0;
 float voltageUpperLim_24V = 30.0;
+const float tempUpperLim = 302; // fahrenheit -- 150 celsius
+const float tempLowerLim = -4;  // fahrenheit -- -20 celsius
+const float currentLowerLim_24V = 30.0;
+const float currentUpperLim_24V = 60.0;
+const float powerLowerLim_24V = 1000;
+const float powerUpperLim_24V = 1440;
+const float currentLowerLim_12V = 3;
+const float currentUpperLim_12V = 5;
+const float voltageLowerLim_12V = 11.5;
+const float voltageUpperLim_12V = 12.5;
+const float powerLowerLim_12V = 35;
+const float powerUpperLim_12V = 60;
+const float currentLowerLim_5V = 3;
+const float currentUpperLim_5V = 5;
+const float voltageLowerLim_5V = 4.5;
+const float voltageUpperLim_5V = 5.5;
+const float powerLowerLim_5V = 15;
+const float powerUpperLim_5V = 25;
 
 
 /* Function Prototypes */
@@ -498,18 +516,18 @@ void updateText(visualization_msgs::Marker &marker, std::string text, int color)
 int findTextColor(float value, int text_id) {
   // temp data
   if (text_id >= 0 || text_id <= 3) {
-    if (value >= 150.0 || value < 0.0)
+    if (value >= tempUpperLim || value < tempLowerLim)
       return RED;
-    else if (value <= 100.0 && value >= 0.0)
+    else if (value <= tempUpperLim - 90  && value >= tempLowerLim + 35)
       return GREEN;
     else
       return YELLOW;
   }
   // 24V current
   else if (text_id == 4) {
-    if (value >= 60.0)
+    if (value >= currentUpperLim_24V)
       return RED;
-    else if (value <= 30.0)
+    else if (value <= currentLowerLim_24V)
       return GREEN;
     else
       return YELLOW;
@@ -525,63 +543,63 @@ int findTextColor(float value, int text_id) {
   }
   // 24V power
   else if (text_id == 6) {
-    if (value >= 1440)
+    if (value >= powerUpperLim_24V)
       return RED;
-    else if (value <= 1000)
+    else if (value <= powerLowerLim_24V)
       return GREEN;
     else
       return YELLOW;
   }
   // 12V current
   else if (text_id == 7) {
-    if (value >= 5)
+    if (value >= currentUpperLim_12V)
       return RED;
-    else if (value <= 3)
+    else if (value <= currentLowerLim_12V)
       return GREEN;
     else
       return YELLOW;
   }
   // 12V bus voltage
   else if (text_id == 8) {
-    if (value <= 11.5 || value >= 12.5)
+    if (value <= voltageLowerLim_12V || value >= voltageUpperLim_12V)
       return RED;
-    else if (value >= 11.8 && value <= 12.2)
+    else if (value >= voltageLowerLim_12V + 0.3 && value <= voltageUpperLim_12V - 0.3)
       return GREEN;
     else
       return YELLOW;
   }
   // 12V power
   else if (text_id == 9) {
-    if (value >= 60)
+    if (value >= powerUpperLim_12V)
       return RED;
-    else if (value <= 35)
+    else if (value <= powerLowerLim_12V)
       return GREEN;
     else
       return YELLOW;
   }
   // 5V current
   else if (text_id == 10) {
-    if (value >= 5)
+    if (value >= currentUpperLim_5V)
       return RED;
-    else if (value <= 3)
+    else if (value <= currentLowerLim_5V)
       return GREEN;
     else
       return YELLOW;
   }
   // 5V bus voltage
   else if (text_id == 11) {
-    if (value <= 4.5 || value >= 5.5)
+    if (value <= voltageLowerLim_5V || value >= voltageUpperLim_5V)
       return RED;
-    else if (value >= 4.9 && value <= 5.1)
+    else if (value >= voltageLowerLim_5V + 0.3 && value <= voltageUpperLim_5V - 0.3)
       return GREEN;
     else
       return YELLOW;
   }
   // 5V power
   else if (text_id == 12) {
-    if (value >= 25)
+    if (value >= powerUpperLim_5V)
       return RED;
-    else if (value <= 15)
+    else if (value <= powerLowerLim_5V)
       return GREEN;
     else
       return YELLOW;
