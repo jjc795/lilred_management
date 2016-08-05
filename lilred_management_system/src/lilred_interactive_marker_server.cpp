@@ -26,9 +26,9 @@
 #define ESTOP_MARKER  1
 #define FAN_MARKER    2
 
-#define YELLOW 3
-#define GREEN  4
-#define RED    5
+#define YELLOW 1
+#define GREEN  2
+#define RED    3
 
 #define ALL     0
 #define MINIMAL 1
@@ -75,6 +75,9 @@ int mode = ALL; // default mode
 
 uint8_t fan_settings[] = {0, 64, 128, 191, 255}; // approx 0%, 25%, 50%, 75%, 100%
 uint8_t *fan_set = fan_settings; // default is 0%
+
+float 24V_voltageLowerLim = 23.0;
+float 24V_voltageUpperLim = 30.0;
 
 
 /* Function Prototypes */
@@ -243,6 +246,7 @@ void statusCallback(const lilred_msgs::Status &msg) {
         placement_id++;
       }
     }
+    ros::Duration(0.1).sleep();
   }
 
   button_marker.text = estop_str.str();
@@ -258,9 +262,12 @@ void statusCallback(const lilred_msgs::Status &msg) {
 }
 
 void cfgCallback(lilred_management_system::lilredConfig &config, uint32_t level) {
-  ROS_INFO_STREAM("Mode changed to " << config.Mode);
-
+  24V_voltageLowerLim = config.24V_BusVoltageLowerLim;
+  24V_voltageUpperLim = config.24V_BusVoltageUpperLim;
   mode = config.Mode;
+
+  ROS_INFO_STREAM("Mode changed to " << mode << " , 24V Bus Voltage Limits: " << 24V_voltageLowerLim << ", " << 24V_voltageUpperLim);
+
   server->clear();
   server->applyChanges();
   startDisplay();
@@ -478,9 +485,9 @@ int findTextColor(float value, int text_id) {
   }
   // 24V bus voltage
   else if (text_id == 5) {
-    if (value <= 23.0 || value >= 30.0)
+    if (value <= 24V_voltageLowerLim || value >= 24V_voltageUpperLim)
       return RED;
-    else if (value >= 24.0 && value <= 27.0)
+    else if (value >= 24V_voltageLowerLim + 1 && value <= 24V_voltageUpperLim - 1)
       return GREEN;
     else
       return YELLOW;
