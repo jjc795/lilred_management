@@ -80,7 +80,7 @@ uint8_t *fan_set = fan_settings; // default is 0%
 /* Function Prototypes */
 int findTextColor(float value, int text_id);
 void updateText(visualization_msgs::Marker &marker, std::string text, int color);
-Marker makeText(InteractiveMarker &msg, int text_id, bool isEstop = false, int placement_id = text_id);
+Marker makeText(InteractiveMarker &msg, int text_id, int placement_id, bool isEstop = false);
 void makeInteractiveText(int type);
 void startDisplay(void);
 
@@ -144,13 +144,8 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
       server->get("estop_marker", estop_marker);
       server->get("fan_marker", fan_marker);
 
-      estop_marker.pose.position.x = feedback->pose.position.x;
-      estop_marker.pose.position.y = feedback->pose.position.y;
-      estop_marker.pose.position.z = feedback->pose.position.z;
-
-      fan_marker.pose.position.x = feedback->pose.position.x;
-      fan_marker.pose.position.y = feedback->pose.position.y;
-      fan_marker.pose.position.z = feedback->pose.position.z;
+      estop_marker.pose = feedback->pose;
+      fan_marker.pose = feedback->pose;
 
       server->insert(estop_marker);
       server->insert(fan_marker);
@@ -236,20 +231,16 @@ void statusCallback(const lilred_msgs::Status &msg) {
   else if (mode == MINIMAL) {
     text_markers.erase(text_markers.begin()+1, text_markers.end());
     updateText(text_markers[0], status_str[5].str(), findTextColor(status[5], 5));
+    int placement_id = 3;
     for (int i = 0; i < 13; i++) {
-      int placement_id = i;
-
       if (i == 5)
         continue;
-      else if (i > 5)
-        placement_id--;
-
-      placement_id += 3;
 
       if (findTextColor(status[i], i) != GREEN) {
-        Marker marker = makeText(status_marker, i, false, placement_id);
+        Marker marker = makeText(status_marker, i, placement_id);
         updateText(marker, status_str[i].str(), findTextColor(status[i], i));
         text_markers.push_back(marker);
+        placement_id++;
       }
     }
   }
@@ -267,9 +258,9 @@ void statusCallback(const lilred_msgs::Status &msg) {
 }
 
 void cfgCallback(lilred_management_system::lilredConfig &config, uint32_t level) {
-  ROS_INFO_STREAM("test " << config.mode);
+  ROS_INFO_STREAM("Mode changed to " << config.Mode);
 
-  mode = config.mode;
+  mode = config.Mode;
   server->clear();
   server->applyChanges();
   startDisplay();
@@ -277,6 +268,8 @@ void cfgCallback(lilred_management_system::lilredConfig &config, uint32_t level)
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "status_marker_server");
+
+  server.reset(new interactive_markers::InteractiveMarkerServer("status_marker_server","",false));
 
   dynamic_reconfigure::Server<lilred_management_system::lilredConfig> cfgServer;
   dynamic_reconfigure::Server<lilred_management_system::lilredConfig>::CallbackType f;
@@ -291,8 +284,6 @@ int main(int argc, char** argv) {
   ros::Publisher command_pub = nh.advertise<lilred_msgs::Command>("commands", 1000);
 
   ros::Rate loop_rate(HZ);
-
-  server.reset(new interactive_markers::InteractiveMarkerServer("status_marker_server","",false));
 
   startDisplay();
 
@@ -347,7 +338,7 @@ void startDisplay(void) {
 
 
 /* Creates basic text markers for interactive markers */
-Marker makeText(InteractiveMarker &msg, int text_id, bool isEstop, int placement_id) {
+Marker makeText(InteractiveMarker &msg, int text_id, int placement_id, bool isEstop) {
   Marker marker;
 
   marker.type = Marker::TEXT_VIEW_FACING;
@@ -355,11 +346,6 @@ Marker makeText(InteractiveMarker &msg, int text_id, bool isEstop, int placement
   marker.text = status_text[text_id];
   marker.pose.position.x = msg.pose.position.x;
   marker.pose.position.y = msg.pose.position.y;
-
-  /*if (mode == ALL)
-    int placement_id = text_id;
-  else if (mode == MINIMAL)
-    int placement_id = (text_id-5)%7; */// remaps 5,13,14 to 0,1,2 -- needs to be updated if more info is displayed
 
   marker.pose.position.z = msg.pose.position.z - marker.scale.z * 1.2 * placement_id; // space them out vertically
 
@@ -399,12 +385,12 @@ void makeInteractiveText(int type) {
                           if (mode == ALL) {
                             Marker marker[13];
                             for (int i = 0; i < 13; i++) {
-                              marker[i] = makeText(int_marker, i);
+                              marker[i] = makeText(int_marker, i, i);
                               control.markers.push_back(marker[i]);
                             }
                           }
                           else if (mode == MINIMAL) {
-                            Marker marker = makeText(int_marker, 5, false, 2);
+                            Marker marker = makeText(int_marker, 5, 2);
                             control.markers.push_back(marker);
                           }
 
@@ -414,7 +400,11 @@ void makeInteractiveText(int type) {
                         }
     case ESTOP_MARKER:  { // marker for estop interaction
                           int_marker.name = "estop_marker";
-                          Marker marker = makeText(int_marker, 14, true, 1);
+			  Marker marker;
+			  if (mode == ALL)
+                            marker = makeText(int_marker, 14, 14, true);
+			  else if (mode == MINIMAL)
+			    marker = makeText(int_marker, 14, 1, true);
 
                           control.interaction_mode = InteractiveMarkerControl::BUTTON;
                           control.name = "text_button";
@@ -423,7 +413,11 @@ void makeInteractiveText(int type) {
                         }
     case FAN_MARKER:    { // marker for fan interaction
                           int_marker.name = "fan_marker";
-                          Marker marker = makeText(int_marker, 13, false, 0);
+			  Marker marker;
+			  if (mode == ALL)
+			    marker = makeText(int_marker, 13, 13);
+			  else if (mode == MINIMAL)
+                            marker = makeText(int_marker, 13, 0);
 
                           control.interaction_mode = InteractiveMarkerControl::BUTTON;
                           control.name = "text_button";
