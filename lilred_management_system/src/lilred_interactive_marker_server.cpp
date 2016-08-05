@@ -271,11 +271,12 @@ void cfgCallback(lilred_management_system::lilredConfig &config, uint32_t level)
   voltageLowerLim_24V = config.BusVoltageLowerLim_24V;
   voltageUpperLim_24V = config.BusVoltageUpperLim_24V;
   mode = config.Mode;
+  std::string mode_str;
 
   if (mode)
-    std::string mode_str = "Minimal";
+    mode_str = "Minimal";
   else
-    std::string mode_str = "All";
+    mode_str = "All";
 
   ROS_INFO_STREAM("Mode set to " << mode_str << std::endl << "24V Bus Voltage Lower Limit set to " << voltageLowerLim_24V << ", Upper Limit set to " << voltageUpperLim_24V);
 
