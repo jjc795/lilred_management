@@ -85,7 +85,8 @@ int findTextColor(float value, int text_id);
 void updateText(visualization_msgs::Marker &marker, std::string text, int color);
 Marker makeText(InteractiveMarker &msg, int text_id, int placement_id, bool isEstop = false);
 void makeInteractiveText(int type);
-void startDisplay(void);
+void startDisplay();
+void setFanText(InteractiveMarker &fan_marker);
 
 
 /* Callback for user feedback from rviz */
@@ -107,34 +108,7 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
       InteractiveMarker fan_marker;
       server->get("fan_marker", fan_marker);
 
-      std::ostringstream fan_str;
-      fan_str << status_text[13];
-
-      if (*fan_set == fan_settings[0])
-        fan_str << "0%";
-      else if (*fan_set == fan_settings[1])
-        fan_str << "25%";
-      else if (*fan_set == fan_settings[2])
-        fan_str << "50%";
-      else if (*fan_set == fan_settings[3])
-        fan_str << "75%";
-      else if (*fan_set == fan_settings[4])
-        fan_str << "100%";
-      else
-        fan_str << "ERROR";
-
-      InteractiveMarkerControl button_control = fan_marker.controls.back();
-      Marker button_marker = button_control.markers.back();
-
-      fan_marker.controls.clear();
-      button_control.markers.clear();
-
-      button_marker.text = fan_str.str();
-
-      button_control.markers.push_back(button_marker);
-      fan_marker.controls.push_back(button_control);
-
-      server->insert(fan_marker);
+      setFanText(fan_marker);
     }
   }
   else if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE) {
@@ -251,10 +225,18 @@ void statusCallback(const lilred_msgs::Status &msg) {
       updateText(text_markers[i], status_str[i].str(), findTextColor(status[i], i));
   }
   else if (mode == MINIMAL) {
-    startDisplay();
-    text_markers.erase(text_markers.begin()+1, text_markers.end());
-    updateText(text_markers[0], status_str[5].str(), findTextColor(status[5], 5));
-    int placement_id = 3;
+    InteractiveMarker fan_marker;
+    server->get("fan_marker", fan_marker);
+    InteractiveMarkerControl fan_control = fan_marker.controls.back();
+    fan_marker.controls.clear();
+    fan_control.markers.clear();
+
+    text_markers.clear();
+    Marker marker = makeText(status_marker, 5, 0);
+    updateText(marker, status_str[5].str(), findTextColor(status[5], 5));
+    text_markers.push_back(marker);
+    int placement_id = 1;
+
     for (int i = 0; i < 13; i++) {
       if (i == 5)
         continue;
@@ -266,8 +248,13 @@ void statusCallback(const lilred_msgs::Status &msg) {
         placement_id++;
       }
     }
-  }
+    Marker fan_button_marker = makeText(fan_marker, 13, placement_id);
+    fan_control.markers.push_back(fan_button_marker);
+    fan_marker.controls.push_back(fan_control);
+    setFanText(fan_marker);
 
+    button_marker = makeText(estop_marker, 14, placement_id+1, true);
+  }
   button_marker.text = estop_str.str();
 
   text_control.markers = text_markers;
@@ -285,7 +272,12 @@ void cfgCallback(lilred_management_system::lilredConfig &config, uint32_t level)
   voltageUpperLim_24V = config.BusVoltageUpperLim_24V;
   mode = config.Mode;
 
-  ROS_INFO_STREAM("Mode changed to " << mode << " , 24V Bus Voltage Limits: " << voltageLowerLim_24V << ", " << voltageUpperLim_24V);
+  if (mode)
+    std::string mode_str = "Minimal";
+  else
+    std::string mode_str = "All";
+
+  ROS_INFO_STREAM("Mode set to " << mode_str << std::endl << "24V Bus Voltage Lower Limit set to " << voltageLowerLim_24V << ", Upper Limit set to " << voltageUpperLim_24V);
 
   server->clear();
   server->applyChanges();
@@ -331,8 +323,8 @@ int main(int argc, char** argv) {
 }
 
 
-/* Starts display with defaults */
-void startDisplay(void) {
+/* Starts display with current settings */
+void startDisplay() {
   makeInteractiveText(STATUS_MARKER);
   makeInteractiveText(ESTOP_MARKER);
   makeInteractiveText(FAN_MARKER);
@@ -343,8 +335,29 @@ void startDisplay(void) {
   InteractiveMarker fan_marker;
   server->get("fan_marker", fan_marker);
 
+  setFanText(fan_marker);
+
+  server->applyChanges();
+}
+
+
+/* Set fan marker text to match the fan setting */
+void setFanText(InteractiveMarker &fan_marker) {
   std::ostringstream fan_str;
-  fan_str << status_text[13] << "0%";
+  fan_str << status_text[13];
+
+  if (*fan_set == fan_settings[0])
+    fan_str << "0%";
+  else if (*fan_set == fan_settings[1])
+    fan_str << "25%";
+  else if (*fan_set == fan_settings[2])
+    fan_str << "50%";
+  else if (*fan_set == fan_settings[3])
+    fan_str << "75%";
+  else if (*fan_set == fan_settings[4])
+    fan_str << "100%";
+  else
+    fan_str << "ERROR";
 
   InteractiveMarkerControl button_control = fan_marker.controls.back();
   Marker button_marker = button_control.markers.back();
@@ -358,8 +371,6 @@ void startDisplay(void) {
   fan_marker.controls.push_back(button_control);
 
   server->insert(fan_marker);
-
-  server->applyChanges();
 }
 
 
@@ -398,9 +409,7 @@ void makeInteractiveText(int type) {
   int_marker.header.stamp = ros::Time::now();
   int_marker.scale = 1;
 
-  int_marker.pose.position.x = 0.0;
-  int_marker.pose.position.y = 0.0;
-  int_marker.pose.position.z = 0.0;
+  int_marker.pose.position.x = int_marker.pose.position.y = int_marker.pose.position.z = 0.0;
 
   InteractiveMarkerControl control;
 
