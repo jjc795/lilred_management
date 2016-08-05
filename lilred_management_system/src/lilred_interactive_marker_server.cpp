@@ -153,6 +153,7 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
       server->insert(estop_marker);
       server->insert(fan_marker);
     }
+    ros::Duration(0.1).sleep();
   }
   server->applyChanges();
 }
@@ -246,7 +247,6 @@ void statusCallback(const lilred_msgs::Status &msg) {
         placement_id++;
       }
     }
-    ros::Duration(0.1).sleep();
   }
 
   button_marker.text = estop_str.str();
