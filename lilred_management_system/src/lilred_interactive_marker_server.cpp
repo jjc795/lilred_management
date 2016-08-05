@@ -150,10 +150,28 @@ void processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr
       estop_marker.pose = feedback->pose;
       fan_marker.pose = feedback->pose;
 
+      if (mode == MINIMAL) {
+        InteractiveMarker status_marker;
+        server->get("status_marker", status_marker);
+
+        InteractiveMarkerControl text_control = status_marker.controls.back();
+        std::vector<Marker> text_markers = text_control.markers;
+        status_marker.controls.clear();
+        text_control.markers.clear();
+
+        for (int i = 0; i < text_markers.size(); i++) {
+          text_markers[i].pose = feedback->pose;
+	  text_markers[i].pose.position.z -= text_markers[i].scale.z * 1.2 * (i + 2);
+        }
+
+        text_control.markers = text_markers;
+        status_marker.controls.push_back(text_control);
+
+        server->insert(status_marker);
+      }
       server->insert(estop_marker);
       server->insert(fan_marker);
     }
-    ros::Duration(0.1).sleep();
   }
   server->applyChanges();
 }
@@ -233,6 +251,7 @@ void statusCallback(const lilred_msgs::Status &msg) {
       updateText(text_markers[i], status_str[i].str(), findTextColor(status[i], i));
   }
   else if (mode == MINIMAL) {
+    startDisplay();
     text_markers.erase(text_markers.begin()+1, text_markers.end());
     updateText(text_markers[0], status_str[5].str(), findTextColor(status[5], 5));
     int placement_id = 3;
