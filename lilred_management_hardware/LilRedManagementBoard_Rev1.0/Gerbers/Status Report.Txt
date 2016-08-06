@@ -1,0 +1,20 @@
+Output: Gerber Files
+Type  : Gerber
+From  : Variant [[No Variations]] of PCB Document [lilred_management_board.PcbDoc]
+   Generated File[lilred_management_board.GTL]
+   Generated File[lilred_management_board.GBL]
+   Generated File[lilred_management_board.GTO]
+   Generated File[lilred_management_board.GTP]
+   Generated File[lilred_management_board.GTS]
+   Generated File[lilred_management_board.GBS]
+   Generated File[lilred_management_board.GBP]
+   Generated File[lilred_management_board.GBO]
+   Generated File[lilred_management_board.GKO]
+   Generated File[lilred_management_board.EXTREP]
+   Generated File[lilred_management_board.REP]
+
+
+Files Generated   : 11
+Documents Printed : 0
+
+Finished Output Generation At 16:50:05 On 7/1/2016
